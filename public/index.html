@@ -97,15 +97,27 @@
     .ok-btn { background: #4caf50; color: white; }
     .clear-btn { background: #bdbdbd; color: white; }
     .back-btn { background: #90caf9; color: white; }
-    .next-btn {
+    .speak-btn {
       background: #ff9800;
       color: white;
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      font-size: 32px;
+      font-size: 28px;
       display: block;
       margin: 12px auto 4px;
+      border: none;
+      cursor: pointer;
+    }
+    .next-small {
+      background: #ffb74d;
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      padding: 8px 14px;
+      margin: 6px;
+      cursor: pointer;
     }
     .feedback {
       font-size: 24px;
@@ -155,7 +167,8 @@
         <button class="btn clear-btn" id="clearBtn">きれい</button>
         <button class="btn ok-btn" id="okBtn">OK</button>
       </div>
-      <button class="next-btn" id="nextBtn" title="Next">▶</button>
+      <button class="speak-btn" id="speakBtn" title="きく">🔊</button>
+      <button class="next-small" id="nextBtn">つぎ</button>
       <div class="feedback" id="feedback"></div>
       <div class="progress" id="progress"></div>
       <button class="btn back-btn" id="backBtn" style="margin-top:12px;">もどる</button>
@@ -164,29 +177,29 @@
 
   <script>
     const KANJI_LIST = [
-      { kanji: "一", reading: "いち", meaning: "one" },
-      { kanji: "二", reading: "に", meaning: "two" },
-      { kanji: "三", reading: "さん", meaning: "three" },
-      { kanji: "四", reading: "し / よん", meaning: "four" },
-      { kanji: "五", reading: "ご", meaning: "five" },
-      { kanji: "六", reading: "ろく", meaning: "six" },
-      { kanji: "七", reading: "なな / しち", meaning: "seven" },
-      { kanji: "八", reading: "はち", meaning: "eight" },
-      { kanji: "九", reading: "きゅう / く", meaning: "nine" },
-      { kanji: "十", reading: "じゅう", meaning: "ten" }
+      { kanji: "一", reading: "いち", speak: "いち" },
+      { kanji: "二", reading: "に", speak: "に" },
+      { kanji: "三", reading: "さん", speak: "さん" },
+      { kanji: "四", reading: "し / よん", speak: "し" },
+      { kanji: "五", reading: "ご", speak: "ご" },
+      { kanji: "六", reading: "ろく", speak: "ろく" },
+      { kanji: "七", reading: "なな / しち", speak: "なな" },
+      { kanji: "八", reading: "はち", speak: "はち" },
+      { kanji: "九", reading: "きゅう / く", speak: "きゅう" },
+      { kanji: "十", reading: "じゅう", speak: "じゅう" }
     ];
 
     const MATH_LIST = [
-      { kanji: "一", q: "1 × 1 = ?", a: "1" },
-      { kanji: "二", q: "2 × 2 = ?", a: "4" },
-      { kanji: "三", q: "3 × 1 = ?", a: "3" },
-      { kanji: "四", q: "2 × 3 = ?", a: "6" },
-      { kanji: "五", q: "5 × 1 = ?", a: "5" },
-      { kanji: "六", q: "3 × 2 = ?", a: "6" },
-      { kanji: "七", q: "7 × 1 = ?", a: "7" },
-      { kanji: "八", q: "4 × 2 = ?", a: "8" },
-      { kanji: "九", q: "3 × 3 = ?", a: "9" },
-      { kanji: "十", q: "5 × 2 = ?", a: "10" }
+      { kanji: "一", q: "1 × 1 = ?", speak: "いちかけるいちは" },
+      { kanji: "二", q: "2 × 2 = ?", speak: "にかけるには" },
+      { kanji: "三", q: "3 × 1 = ?", speak: "さんかけるいちは" },
+      { kanji: "四", q: "2 × 3 = ?", speak: "にかけるさんは" },
+      { kanji: "五", q: "5 × 1 = ?", speak: "ごかけるいちは" },
+      { kanji: "六", q: "3 × 2 = ?", speak: "さんかけるには" },
+      { kanji: "七", q: "7 × 1 = ?", speak: "ななかけるいちは" },
+      { kanji: "八", q: "4 × 2 = ?", speak: "しかけるには" },
+      { kanji: "九", q: "3 × 3 = ?", speak: "さんかけるさんは" },
+      { kanji: "十", q: "5 × 2 = ?", speak: "ごかけるには" }
     ];
 
     let mode = "kanji";
@@ -205,6 +218,7 @@
     const progressEl = document.getElementById("progress");
     const okBtn = document.getElementById("okBtn");
     const nextBtn = document.getElementById("nextBtn");
+    const speakBtn = document.getElementById("speakBtn");
     const clearBtn = document.getElementById("clearBtn");
     const backBtn = document.getElementById("backBtn");
     const canvas = document.getElementById("canvas");
@@ -214,6 +228,15 @@
     ctx.lineWidth = 7;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#222";
+
+    function speak(text) {
+      if (!text) return;
+      speechSynthesis.cancel();
+      const uttr = new SpeechSynthesisUtterance(text);
+      uttr.lang = "ja-JP";
+      uttr.rate = 0.9;
+      speechSynthesis.speak(uttr);
+    }
 
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
@@ -321,6 +344,12 @@
       if (!current) return;
       queue.push(current);
       loadNext();
+    };
+
+    speakBtn.onclick = () => {
+      if (!current) return;
+      const text = current.speak || current.reading || current.q;
+      speak(text);
     };
 
     showHome();
