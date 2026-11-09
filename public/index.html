@@ -8,180 +8,120 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "Hiragino Maru Gothic Pro", "Yu Gothic", sans-serif;
-      background: linear-gradient(180deg, #e0c3fc 0%, #8ec5fc 50%, #fbc2eb 100%);
+      background: linear-gradient(180deg, #d4a5ff 0%, #ffb3d9 50%, #c9a0ff 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 20px;
       position: relative;
       overflow: hidden;
     }
     body::before {
       content: "";
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" font-size="30" fill="rgba(255,255,255,0.3)">★</text></svg>') repeat;
-      opacity: 0.3;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.5;
       pointer-events: none;
     }
     .card {
-      background: rgba(255,255,255,0.95);
-      border-radius: 32px;
-      padding: 24px 20px;
-      box-shadow: 0 15px 50px rgba(0,0,0,0.15);
-      max-width: 420px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 36px;
+      padding: 30px 24px 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      max-width: 400px;
       width: 100%;
       text-align: center;
       position: relative;
       z-index: 1;
     }
     .bunny {
-      width: 60px;
-      height: 60px;
-      background: #ffb6c1;
+      width: 70px;
+      height: 70px;
+      background: #ffd1dc;
       border-radius: 50%;
       position: absolute;
-      top: -30px;
-      left: 20px;
+      top: -28px;
+      left: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      font-size: 40px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+      border: 3px solid white;
     }
-    .header-banner {
-      background: linear-gradient(90deg, #ff9a9e, #fad0c4);
+    .banner {
+      background: linear-gradient(90deg, #ff7eb3, #ff65a3);
+      color: white;
       border-radius: 20px;
-      padding: 8px 16px;
-      margin: 10px auto 16px;
+      padding: 8px 20px;
+      font-size: 15px;
       font-weight: bold;
-      font-size: 16px;
-      color: #fff;
       display: inline-block;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 10px rgba(255,101,163,0.3);
     }
-    .home-title {
-      font-size: 36px;
-      margin: 8px 0;
-      background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .title {
+      font-size: 48px;
       font-weight: 900;
-      line-height: 1.2;
+      line-height: 1.15;
+      margin: 8px 0 24px;
     }
-    .home-sub {
-      font-size: 18px;
-      color: #555;
-      margin-bottom: 24px;
-    }
+    .title .pink { color: #ff6b9d; }
+    .title .purple { color: #7c5cfc; }
+    .title .yellow { color: #ffb347; }
     .big-btn {
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 12px;
       width: 100%;
-      background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
-      color: white;
       border: none;
-      border-radius: 24px;
+      border-radius: 28px;
       font-size: 22px;
       font-weight: bold;
-      padding: 18px;
+      padding: 18px 20px;
       margin: 12px 0;
       cursor: pointer;
-      box-shadow: 0 6px 15px rgba(255,107,107,0.3);
+      color: white;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    .big-btn.pink {
+      background: linear-gradient(90deg, #ff6b9d, #ff8fab);
     }
     .big-btn.purple {
-      background: linear-gradient(90deg, #a29bfe, #6c5ce7);
-      box-shadow: 0 6px 15px rgba(108,92,231,0.3);
+      background: linear-gradient(90deg, #7c5cfc, #9b8afb);
     }
-    .info {
-      font-size: 16px;
-      color: #555;
-      margin-bottom: 8px;
+    .icon {
+      font-size: 28px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 12px;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .kanji-big {
-      font-size: 80px;
-      font-weight: bold;
-      color: #2d3436;
-      margin: 8px 0 16px;
-    }
-    .write-label {
-      font-size: 20px;
-      font-weight: bold;
-      color: #2d3436;
-      margin-bottom: 10px;
-    }
-    #canvas {
-      border: 4px dashed #ddd;
-      border-radius: 20px;
-      background: #fafafa;
-      touch-action: none;
-      margin: 0 auto 16px;
-      display: block;
-      cursor: crosshair;
-    }
-    .btn {
-      border: none;
-      border-radius: 20px;
-      font-size: 18px;
-      font-weight: bold;
-      padding: 14px 20px;
-      cursor: pointer;
-      margin: 6px;
-    }
+    /* Practice screen styles remain the same */
+    .info { font-size: 16px; color: #555; margin-bottom: 8px; }
+    .kanji-big { font-size: 80px; font-weight: bold; color: #2d3436; margin: 8px 0 16px; }
+    .write-label { font-size: 20px; font-weight: bold; color: #2d3436; margin-bottom: 10px; }
+    #canvas { border: 4px dashed #ddd; border-radius: 20px; background: #fafafa; touch-action: none; margin: 0 auto 16px; display: block; cursor: crosshair; }
+    .btn { border: none; border-radius: 20px; font-size: 18px; font-weight: bold; padding: 14px 20px; cursor: pointer; margin: 6px; }
     .ok-btn { background: #00b894; color: white; }
     .clear-btn { background: #fdcb6e; color: #2d3436; }
     .back-btn { background: #74b9ff; color: white; }
     .unknown-btn { background: #6c5ce7; color: white; }
-    .speak-btn {
-      background: #ff7675;
-      color: white;
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      font-size: 32px;
-      display: block;
-      margin: 16px auto 8px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 6px 15px rgba(255,118,117,0.4);
-    }
-    .next-small {
-      background: #fd79a8;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      font-size: 18px;
-      font-weight: bold;
-      padding: 12px 20px;
-      margin: 8px;
-      cursor: pointer;
-    }
-    .feedback {
-      font-size: 26px;
-      margin: 12px 0 6px;
-      min-height: 36px;
-      font-weight: bold;
-    }
+    .speak-btn { background: #ff7675; color: white; width: 70px; height: 70px; border-radius: 50%; font-size: 32px; display: block; margin: 16px auto 8px; border: none; cursor: pointer; }
+    .next-small { background: #fd79a8; color: white; border: none; border-radius: 20px; font-size: 18px; font-weight: bold; padding: 12px 20px; margin: 8px; cursor: pointer; }
+    .feedback { font-size: 26px; margin: 12px 0 6px; min-height: 36px; font-weight: bold; }
     .feedback.good { color: #00b894; }
-    .progress {
-      margin-top: 10px;
-      font-size: 16px;
-      color: #636e72;
-    }
-    .done {
-      font-size: 64px;
-      color: #00b894;
-      margin: 40px 0;
-    }
-    .buttons {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
+    .progress { margin-top: 10px; font-size: 16px; color: #636e72; }
+    .done { font-size: 64px; color: #00b894; margin: 40px 0; }
+    .buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .hidden { display: none; }
   </style>
 </head>
@@ -191,16 +131,23 @@
 
     <!-- Home -->
     <div id="home">
-      <div class="header-banner">★ 今日もがんばろう！ ★</div>
-      <div class="home-title">エマの<br>漢字と<br>九九</div>
-      <div class="home-sub">楽しく練習しよう</div>
-      <button class="big-btn" id="startKanji">📖 漢字を練習</button>
-      <button class="big-btn purple" id="startMath">📝 九九を練習</button>
+      <div class="banner">★ 今日もがんばろう！ ★</div>
+      <div class="title">
+        <span class="pink">エマ</span><br>
+        <span class="purple">の漢字と</span><br>
+        <span class="yellow">九九</span>
+      </div>
+      <button class="big-btn pink" id="startKanji">
+        <span class="icon">📖</span> 漢字を練習
+      </button>
+      <button class="big-btn purple" id="startMath">
+        <span class="icon">🔢</span> 九九を練習
+      </button>
     </div>
 
     <!-- Practice -->
     <div id="practice" class="hidden">
-      <div class="header-banner" id="modeTitle">漢字を練習</div>
+      <div class="banner" id="modeTitle">漢字を練習</div>
       <div class="info" id="info"></div>
       <div class="kanji-big" id="kanji"></div>
       <div class="write-label" id="question">かいてみよう</div>
@@ -388,9 +335,9 @@
     function showDone() {
       practiceEl.innerHTML = `
         <div class="done">✔</div>
-        <div class="home-title">すごい！じょうず！</div>
-        <div class="home-sub">エマ、かんばったね</div>
-        <button class="big-btn" onclick="location.reload()">もういちど</button>
+        <div class="title" style="font-size:36px;">すごい！じょうず！</div>
+        <div style="font-size:18px;color:#555;margin:10px 0 20px;">エマ、かんばったね</div>
+        <button class="big-btn pink" onclick="location.reload()">もういちど</button>
       `;
     }
 
