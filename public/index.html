@@ -97,6 +97,7 @@
     .ok-btn { background: #4caf50; color: white; }
     .clear-btn { background: #bdbdbd; color: white; }
     .back-btn { background: #90caf9; color: white; }
+    .unknown-btn { background: #7e57c2; color: white; }
     .speak-btn {
       background: #ff9800;
       color: white;
@@ -141,6 +142,7 @@
       justify-content: center;
       gap: 10px;
       margin-top: 6px;
+      flex-wrap: wrap;
     }
     .hidden { display: none; }
   </style>
@@ -166,6 +168,7 @@
       <div class="buttons">
         <button class="btn clear-btn" id="clearBtn">きれい</button>
         <button class="btn ok-btn" id="okBtn">OK</button>
+        <button class="btn unknown-btn" id="unknownBtn">わからない</button>
       </div>
       <button class="speak-btn" id="speakBtn" title="きく">🔊</button>
       <button class="next-small" id="nextBtn">つぎ</button>
@@ -207,6 +210,7 @@
     let current = null;
     let correctCount = 0;
     let total = 0;
+    let showingGuide = false;
 
     const homeEl = document.getElementById("home");
     const practiceEl = document.getElementById("practice");
@@ -220,6 +224,7 @@
     const nextBtn = document.getElementById("nextBtn");
     const speakBtn = document.getElementById("speakBtn");
     const clearBtn = document.getElementById("clearBtn");
+    const unknownBtn = document.getElementById("unknownBtn");
     const backBtn = document.getElementById("backBtn");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -271,9 +276,27 @@
 
     function clearCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      showingGuide = false;
     }
 
     clearBtn.onclick = clearCanvas;
+
+    function showGuide() {
+      if (!current || mode !== "kanji") return;
+      clearCanvas();
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = "#888";
+      ctx.font = "bold 100px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(current.kanji, canvas.width / 2, canvas.height / 2);
+      ctx.restore();
+      showingGuide = true;
+      questionEl.textContent = "なぞってみよう！";
+    }
+
+    unknownBtn.onclick = showGuide;
 
     function showHome() {
       homeEl.classList.remove("hidden");
@@ -305,10 +328,12 @@
         infoEl.textContent = `${current.kanji} （${current.reading}）`;
         questionEl.textContent = "かいてみよう";
         modeTitle.textContent = "漢字を練習";
+        unknownBtn.style.display = "inline-block";
       } else {
         infoEl.textContent = current.kanji;
         questionEl.textContent = current.q;
         modeTitle.textContent = "九九を練習";
+        unknownBtn.style.display = "none";
       }
       clearCanvas();
       feedbackEl.textContent = "";
