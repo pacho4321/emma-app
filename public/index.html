@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Emma Kanji Math</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -33,47 +34,37 @@
     }
     .question {
       font-size: 22px;
-      margin: 15px 0 25px;
+      margin: 15px 0 15px;
       color: #444;
     }
-    .answer-display {
-      font-size: 36px;
-      min-height: 50px;
-      background: #f8f9fa;
-      border-radius: 15px;
-      padding: 10px;
-      margin-bottom: 20px;
-      letter-spacing: 4px;
-      color: #222;
+    #canvas {
+      border: 3px solid #ddd;
+      border-radius: 20px;
+      background: #fafafa;
+      touch-action: none;
+      margin: 10px auto;
+      display: block;
+      cursor: crosshair;
     }
-    .numpad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 15px;
-    }
-    .num-btn, .ok-btn, .next-btn {
+    .ok-btn, .next-btn, .clear-btn {
       border: none;
       border-radius: 20px;
-      font-size: 32px;
+      font-size: 24px;
       font-weight: bold;
-      padding: 18px 0;
+      padding: 14px 0;
       cursor: pointer;
-      transition: transform 0.1s;
+      margin: 6px;
     }
-    .num-btn {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
-    .num-btn:active { transform: scale(0.95); background: #bbdefb; }
     .ok-btn {
       background: #4caf50;
       color: white;
-      grid-column: span 3;
-      font-size: 28px;
-      margin-top: 5px;
+      width: 140px;
     }
-    .ok-btn:active { transform: scale(0.98); }
+    .clear-btn {
+      background: #9e9e9e;
+      color: white;
+      width: 140px;
+    }
     .next-btn {
       background: #ff9800;
       color: white;
@@ -84,7 +75,6 @@
       margin: 10px auto;
       display: block;
     }
-    .next-btn:active { transform: scale(0.95); }
     .feedback {
       font-size: 24px;
       margin: 15px 0;
@@ -103,15 +93,23 @@
       color: #4caf50;
       margin: 30px 0;
     }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="card" id="app">
     <div class="kanji" id="kanji">一</div>
     <div class="question" id="question">1 + 1 = ?</div>
-    <div class="answer-display" id="answerDisplay">&nbsp;</div>
-    <div class="numpad" id="numpad"></div>
-    <button class="ok-btn" id="okBtn">OK</button>
+    <canvas id="canvas" width="300" height="180"></canvas>
+    <div class="buttons">
+      <button class="clear-btn" id="clearBtn">Clear</button>
+      <button class="ok-btn" id="okBtn">OK</button>
+    </div>
     <button class="next-btn" id="nextBtn" title="Skip">▶</button>
     <div class="feedback" id="feedback"></div>
     <div class="progress" id="progress"></div>
@@ -133,50 +131,67 @@
 
     let queue = [...QUESTIONS];
     let current = null;
-    let input = "";
     let correctCount = 0;
     let total = QUESTIONS.length;
+    let recognizing = false;
 
     const kanjiEl = document.getElementById("kanji");
     const questionEl = document.getElementById("question");
-    const answerDisplay = document.getElementById("answerDisplay");
     const feedbackEl = document.getElementById("feedback");
     const progressEl = document.getElementById("progress");
-    const numpad = document.getElementById("numpad");
     const okBtn = document.getElementById("okBtn");
     const nextBtn = document.getElementById("nextBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
-    function buildNumpad() {
-      for (let i = 1; i <= 9; i++) {
-        const btn = document.createElement("button");
-        btn.className = "num-btn";
-        btn.textContent = i;
-        btn.onclick = () => addDigit(i);
-        numpad.appendChild(btn);
-      }
-      const zero = document.createElement("button");
-      zero.className = "num-btn";
-      zero.textContent = "0";
-      zero.onclick = () => addDigit(0);
-      numpad.appendChild(zero);
+    // Drawing setup
+    let drawing = false;
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#222";
 
-      const clear = document.createElement("button");
-      clear.className = "num-btn";
-      clear.textContent = "C";
-      clear.onclick = () => { input = ""; updateDisplay(); };
-      numpad.appendChild(clear);
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches ? e.touches[0] : e;
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
     }
 
-    function addDigit(d) {
-      if (input.length < 4) {
-        input += d;
-        updateDisplay();
-      }
+    function startDraw(e) {
+      drawing = true;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
     }
 
-    function updateDisplay() {
-      answerDisplay.textContent = input || " ";
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
     }
+
+    function stopDraw() {
+      drawing = false;
+    }
+
+    canvas.addEventListener("mousedown", startDraw);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDraw);
+    canvas.addEventListener("mouseleave", stopDraw);
+    canvas.addEventListener("touchstart", startDraw, { passive: false });
+    canvas.addEventListener("touchmove", draw, { passive: false });
+    canvas.addEventListener("touchend", stopDraw);
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    clearBtn.onclick = clearCanvas;
 
     function loadNext() {
       if (queue.length === 0) {
@@ -186,8 +201,7 @@
       current = queue.shift();
       kanjiEl.textContent = current.kanji;
       questionEl.textContent = current.q;
-      input = "";
-      updateDisplay();
+      clearCanvas();
       feedbackEl.textContent = "";
       feedbackEl.className = "feedback";
       updateProgress();
@@ -205,18 +219,36 @@
       `;
     }
 
-    okBtn.onclick = () => {
-      if (!current || input === "") return;
-      if (input === current.a) {
+    async function recognizeNumber() {
+      if (recognizing) return;
+      recognizing = true;
+      feedbackEl.textContent = "Reading...";
+      feedbackEl.className = "feedback";
+      try {
+        const result = await Tesseract.recognize(canvas, "eng", {
+          tessedit_char_whitelist: "0123456789"
+        });
+        const text = result.data.text.replace(/\D/g, "").trim();
+        return text;
+      } catch (err) {
+        return "";
+      } finally {
+        recognizing = false;
+      }
+    }
+
+    okBtn.onclick = async () => {
+      if (!current || recognizing) return;
+      const recognized = await recognizeNumber();
+      if (recognized === current.a) {
         feedbackEl.textContent = "Correct!";
         feedbackEl.className = "feedback correct";
         correctCount++;
-        setTimeout(loadNext, 700);
+        setTimeout(loadNext, 800);
       } else {
-        feedbackEl.textContent = "Try again";
+        feedbackEl.textContent = recognized ? `I saw ${recognized}. Try again` : "Try again";
         feedbackEl.className = "feedback wrong";
-        input = "";
-        updateDisplay();
+        setTimeout(clearCanvas, 600);
       }
     };
 
@@ -226,7 +258,6 @@
       loadNext();
     };
 
-    buildNumpad();
     loadNext();
   </script>
 </body>
