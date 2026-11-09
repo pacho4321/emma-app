@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Emma Kanji Math</title>
+  <title>エマの漢字と九九</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -28,12 +28,36 @@
     .header {
       background: #ffd54f;
       border-radius: 16px;
-      padding: 10px 16px;
+      padding: 12px 16px;
       margin-bottom: 16px;
       font-weight: bold;
-      font-size: 20px;
+      font-size: 22px;
       color: #333;
     }
+    .home-title {
+      font-size: 28px;
+      margin: 10px 0 6px;
+      color: #333;
+    }
+    .home-sub {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .big-btn {
+      display: block;
+      width: 100%;
+      background: #ff9800;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 16px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .big-btn.green { background: #4caf50; }
     .info {
       font-size: 15px;
       color: #555;
@@ -72,6 +96,7 @@
     }
     .ok-btn { background: #4caf50; color: white; }
     .clear-btn { background: #bdbdbd; color: white; }
+    .back-btn { background: #90caf9; color: white; }
     .next-btn {
       background: #ff9800;
       color: white;
@@ -105,66 +130,83 @@
       gap: 10px;
       margin-top: 6px;
     }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="card" id="app">
-    <div class="header" id="modeTitle">Write Kanji</div>
-    <div class="info" id="info">一 (ichi) ・ one</div>
-    <div class="kanji-big" id="kanji">一</div>
-    <div class="write-label">Write Kanji</div>
-    <canvas id="canvas" width="280" height="180"></canvas>
-    <div class="buttons">
-      <button class="btn clear-btn" id="clearBtn">Clear</button>
-      <button class="btn ok-btn" id="okBtn">OK</button>
+    <!-- Home -->
+    <div id="home">
+      <div class="header">エマの漢字と九九</div>
+      <div class="home-title">今日もがんばろう！</div>
+      <div class="home-sub">楽しく練習しよう</div>
+      <button class="big-btn" id="startKanji">漢字を練習</button>
+      <button class="big-btn green" id="startMath">九九を練習</button>
     </div>
-    <button class="next-btn" id="nextBtn" title="Next">▶</button>
-    <div class="feedback" id="feedback"></div>
-    <div class="progress" id="progress"></div>
+
+    <!-- Practice -->
+    <div id="practice" class="hidden">
+      <div class="header" id="modeTitle">漢字</div>
+      <div class="info" id="info"></div>
+      <div class="kanji-big" id="kanji"></div>
+      <div class="write-label" id="question">かいてみよう</div>
+      <canvas id="canvas" width="280" height="180"></canvas>
+      <div class="buttons">
+        <button class="btn clear-btn" id="clearBtn">きれい</button>
+        <button class="btn ok-btn" id="okBtn">OK</button>
+      </div>
+      <button class="next-btn" id="nextBtn" title="Next">▶</button>
+      <div class="feedback" id="feedback"></div>
+      <div class="progress" id="progress"></div>
+      <button class="btn back-btn" id="backBtn" style="margin-top:12px;">もどる</button>
+    </div>
   </div>
 
   <script>
     const KANJI_LIST = [
-      { kanji: "一", reading: "ichi", meaning: "one" },
-      { kanji: "二", reading: "ni", meaning: "two" },
-      { kanji: "三", reading: "san", meaning: "three" },
-      { kanji: "四", reading: "shi / yon", meaning: "four" },
-      { kanji: "五", reading: "go", meaning: "five" },
-      { kanji: "六", reading: "roku", meaning: "six" },
-      { kanji: "七", reading: "nana / shichi", meaning: "seven" },
-      { kanji: "八", reading: "hachi", meaning: "eight" },
-      { kanji: "九", reading: "kyuu / ku", meaning: "nine" },
-      { kanji: "十", reading: "juu", meaning: "ten" }
+      { kanji: "一", reading: "いち", meaning: "one" },
+      { kanji: "二", reading: "に", meaning: "two" },
+      { kanji: "三", reading: "さん", meaning: "three" },
+      { kanji: "四", reading: "し / よん", meaning: "four" },
+      { kanji: "五", reading: "ご", meaning: "five" },
+      { kanji: "六", reading: "ろく", meaning: "six" },
+      { kanji: "七", reading: "なな / しち", meaning: "seven" },
+      { kanji: "八", reading: "はち", meaning: "eight" },
+      { kanji: "九", reading: "きゅう / く", meaning: "nine" },
+      { kanji: "十", reading: "じゅう", meaning: "ten" }
     ];
 
     const MATH_LIST = [
-      { kanji: "一", q: "1 + 1 = ?", a: "2" },
-      { kanji: "二", q: "2 + 2 = ?", a: "4" },
-      { kanji: "三", q: "3 + 1 = ?", a: "4" },
-      { kanji: "四", q: "2 + 2 = ?", a: "4" },
-      { kanji: "五", q: "3 + 2 = ?", a: "5" },
-      { kanji: "六", q: "3 + 3 = ?", a: "6" },
-      { kanji: "七", q: "4 + 3 = ?", a: "7" },
-      { kanji: "八", q: "4 + 4 = ?", a: "8" },
-      { kanji: "九", q: "5 + 4 = ?", a: "9" },
-      { kanji: "十", q: "5 + 5 = ?", a: "10" }
+      { kanji: "一", q: "1 × 1 = ?", a: "1" },
+      { kanji: "二", q: "2 × 2 = ?", a: "4" },
+      { kanji: "三", q: "3 × 1 = ?", a: "3" },
+      { kanji: "四", q: "2 × 3 = ?", a: "6" },
+      { kanji: "五", q: "5 × 1 = ?", a: "5" },
+      { kanji: "六", q: "3 × 2 = ?", a: "6" },
+      { kanji: "七", q: "7 × 1 = ?", a: "7" },
+      { kanji: "八", q: "4 × 2 = ?", a: "8" },
+      { kanji: "九", q: "3 × 3 = ?", a: "9" },
+      { kanji: "十", q: "5 × 2 = ?", a: "10" }
     ];
 
     let mode = "kanji";
-    let queue = [...KANJI_LIST];
+    let queue = [];
     let current = null;
     let correctCount = 0;
-    let total = KANJI_LIST.length;
+    let total = 0;
 
+    const homeEl = document.getElementById("home");
+    const practiceEl = document.getElementById("practice");
     const modeTitle = document.getElementById("modeTitle");
     const infoEl = document.getElementById("info");
     const kanjiEl = document.getElementById("kanji");
-    const questionEl = document.querySelector(".write-label");
+    const questionEl = document.getElementById("question");
     const feedbackEl = document.getElementById("feedback");
     const progressEl = document.getElementById("progress");
     const okBtn = document.getElementById("okBtn");
     const nextBtn = document.getElementById("nextBtn");
     const clearBtn = document.getElementById("clearBtn");
+    const backBtn = document.getElementById("backBtn");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
@@ -210,31 +252,40 @@
 
     clearBtn.onclick = clearCanvas;
 
+    function showHome() {
+      homeEl.classList.remove("hidden");
+      practiceEl.classList.add("hidden");
+    }
+
+    function startPractice(newMode) {
+      mode = newMode;
+      queue = mode === "kanji" ? [...KANJI_LIST] : [...MATH_LIST];
+      correctCount = 0;
+      total = queue.length;
+      homeEl.classList.add("hidden");
+      practiceEl.classList.remove("hidden");
+      loadNext();
+    }
+
+    document.getElementById("startKanji").onclick = () => startPractice("kanji");
+    document.getElementById("startMath").onclick = () => startPractice("math");
+    backBtn.onclick = showHome;
+
     function loadNext() {
       if (queue.length === 0) {
-        if (mode === "kanji") {
-          mode = "math";
-          queue = [...MATH_LIST];
-          correctCount = 0;
-          total = MATH_LIST.length;
-          modeTitle.textContent = "Math Practice";
-          loadNext();
-          return;
-        } else {
-          showDone();
-          return;
-        }
+        showDone();
+        return;
       }
       current = queue.shift();
       kanjiEl.textContent = current.kanji;
       if (mode === "kanji") {
-        infoEl.textContent = `${current.kanji} (${current.reading}) ・ ${current.meaning}`;
-        questionEl.textContent = "Write Kanji";
-        modeTitle.textContent = "Write Kanji";
+        infoEl.textContent = `${current.kanji} （${current.reading}）`;
+        questionEl.textContent = "かいてみよう";
+        modeTitle.textContent = "漢字を練習";
       } else {
         infoEl.textContent = current.kanji;
         questionEl.textContent = current.q;
-        modeTitle.textContent = "Math";
+        modeTitle.textContent = "九九を練習";
       }
       clearCanvas();
       feedbackEl.textContent = "";
@@ -243,18 +294,19 @@
     }
 
     function updateProgress() {
-      progressEl.textContent = `Progress: ${correctCount} / ${total}`;
+      progressEl.textContent = `すすんできた：${correctCount} / ${total}`;
     }
 
     function showDone() {
-      document.getElementById("app").innerHTML = `
+      practiceEl.innerHTML = `
         <div class="done">✔</div>
-        <div class="question">All done! Great job Emma!</div>
-        <div class="progress">You finished both Kanji and Math!</div>
+        <div class="home-title">すごい！じょうず！</div>
+        <div class="home-sub">エマ、かんばったね</div>
+        <button class="big-btn" onclick="location.reload()">もういちど</button>
       `;
     }
 
-    const niceMessages = ["Nice!", "Good job!", "Looking good!", "Well done!", "Great!"];
+    const niceMessages = ["すごい！", "じょうず！", "いいね！", "がんばった！", "すてき！"];
 
     okBtn.onclick = () => {
       if (!current) return;
@@ -271,7 +323,7 @@
       loadNext();
     };
 
-    loadNext();
+    showHome();
   </script>
 </body>
 </html>
