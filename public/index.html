@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Emma Kanji Math</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Maru Gothic Pro", "Yu Gothic", sans-serif;
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 30px;
+      padding: 30px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    .kanji {
+      font-size: 80px;
+      font-weight: bold;
+      color: #333;
+      margin: 10px 0;
+    }
+    .question {
+      font-size: 22px;
+      margin: 15px 0 25px;
+      color: #444;
+    }
+    .answer-display {
+      font-size: 36px;
+      min-height: 50px;
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 10px;
+      margin-bottom: 20px;
+      letter-spacing: 4px;
+      color: #222;
+    }
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .num-btn, .ok-btn, .next-btn {
+      border: none;
+      border-radius: 20px;
+      font-size: 32px;
+      font-weight: bold;
+      padding: 18px 0;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .num-btn {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+    .num-btn:active { transform: scale(0.95); background: #bbdefb; }
+    .ok-btn {
+      background: #4caf50;
+      color: white;
+      grid-column: span 3;
+      font-size: 28px;
+      margin-top: 5px;
+    }
+    .ok-btn:active { transform: scale(0.98); }
+    .next-btn {
+      background: #ff9800;
+      color: white;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      font-size: 36px;
+      margin: 10px auto;
+      display: block;
+    }
+    .next-btn:active { transform: scale(0.95); }
+    .feedback {
+      font-size: 24px;
+      margin: 15px 0;
+      min-height: 30px;
+      font-weight: bold;
+    }
+    .feedback.correct { color: #4caf50; }
+    .feedback.wrong { color: #f44336; }
+    .progress {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #666;
+    }
+    .done {
+      font-size: 48px;
+      color: #4caf50;
+      margin: 30px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <div class="kanji" id="kanji">一</div>
+    <div class="question" id="question">1 + 1 = ?</div>
+    <div class="answer-display" id="answerDisplay">&nbsp;</div>
+    <div class="numpad" id="numpad"></div>
+    <button class="ok-btn" id="okBtn">OK</button>
+    <button class="next-btn" id="nextBtn" title="Skip">▶</button>
+    <div class="feedback" id="feedback"></div>
+    <div class="progress" id="progress"></div>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      { kanji: "一", q: "1 + 1 = ?", a: "2" },
+      { kanji: "二", q: "2 + 2 = ?", a: "4" },
+      { kanji: "三", q: "3 + 1 = ?", a: "4" },
+      { kanji: "四", q: "2 + 2 = ?", a: "4" },
+      { kanji: "五", q: "3 + 2 = ?", a: "5" },
+      { kanji: "六", q: "3 + 3 = ?", a: "6" },
+      { kanji: "七", q: "4 + 3 = ?", a: "7" },
+      { kanji: "八", q: "4 + 4 = ?", a: "8" },
+      { kanji: "九", q: "5 + 4 = ?", a: "9" },
+      { kanji: "十", q: "5 + 5 = ?", a: "10" }
+    ];
+
+    let queue = [...QUESTIONS];
+    let current = null;
+    let input = "";
+    let correctCount = 0;
+    let total = QUESTIONS.length;
+
+    const kanjiEl = document.getElementById("kanji");
+    const questionEl = document.getElementById("question");
+    const answerDisplay = document.getElementById("answerDisplay");
+    const feedbackEl = document.getElementById("feedback");
+    const progressEl = document.getElementById("progress");
+    const numpad = document.getElementById("numpad");
+    const okBtn = document.getElementById("okBtn");
+    const nextBtn = document.getElementById("nextBtn");
+
+    function buildNumpad() {
+      for (let i = 1; i <= 9; i++) {
+        const btn = document.createElement("button");
+        btn.className = "num-btn";
+        btn.textContent = i;
+        btn.onclick = () => addDigit(i);
+        numpad.appendChild(btn);
+      }
+      const zero = document.createElement("button");
+      zero.className = "num-btn";
+      zero.textContent = "0";
+      zero.onclick = () => addDigit(0);
+      numpad.appendChild(zero);
+
+      const clear = document.createElement("button");
+      clear.className = "num-btn";
+      clear.textContent = "C";
+      clear.onclick = () => { input = ""; updateDisplay(); };
+      numpad.appendChild(clear);
+    }
+
+    function addDigit(d) {
+      if (input.length < 4) {
+        input += d;
+        updateDisplay();
+      }
+    }
+
+    function updateDisplay() {
+      answerDisplay.textContent = input || " ";
+    }
+
+    function loadNext() {
+      if (queue.length === 0) {
+        showDone();
+        return;
+      }
+      current = queue.shift();
+      kanjiEl.textContent = current.kanji;
+      questionEl.textContent = current.q;
+      input = "";
+      updateDisplay();
+      feedbackEl.textContent = "";
+      feedbackEl.className = "feedback";
+      updateProgress();
+    }
+
+    function updateProgress() {
+      progressEl.textContent = `Correct: ${correctCount} / ${total}`;
+    }
+
+    function showDone() {
+      document.getElementById("app").innerHTML = `
+        <div class="done">✔</div>
+        <div class="question">All done! Great job!</div>
+        <div class="progress">You got all ${total} correct!</div>
+      `;
+    }
+
+    okBtn.onclick = () => {
+      if (!current || input === "") return;
+      if (input === current.a) {
+        feedbackEl.textContent = "Correct!";
+        feedbackEl.className = "feedback correct";
+        correctCount++;
+        setTimeout(loadNext, 700);
+      } else {
+        feedbackEl.textContent = "Try again";
+        feedbackEl.className = "feedback wrong";
+        input = "";
+        updateDisplay();
+      }
+    };
+
+    nextBtn.onclick = () => {
+      if (!current) return;
+      queue.push(current);
+      loadNext();
+    };
+
+    buildNumpad();
+    loadNext();
+  </script>
+</body>
+</html>
