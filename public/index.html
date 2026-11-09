@@ -14,75 +14,85 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
     }
     .card {
       background: white;
-      border-radius: 30px;
-      padding: 30px 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-      max-width: 420px;
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      max-width: 400px;
       width: 100%;
       text-align: center;
     }
-    .mode-title {
+    .header {
+      background: #ffd54f;
+      border-radius: 16px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-weight: bold;
       font-size: 20px;
-      color: #666;
-      margin-bottom: 5px;
+      color: #333;
     }
-    .kanji {
-      font-size: 90px;
+    .info {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .kanji-big {
+      font-size: 72px;
+      font-weight: bold;
+      color: #222;
+      margin: 4px 0 12px;
+    }
+    .write-label {
+      font-size: 18px;
       font-weight: bold;
       color: #333;
-      margin: 5px 0 15px;
-    }
-    .question {
-      font-size: 22px;
-      margin: 10px 0 15px;
-      color: #444;
+      margin-bottom: 8px;
     }
     #canvas {
-      border: 3px solid #ddd;
-      border-radius: 20px;
+      border: 3px solid #e0e0e0;
+      border-radius: 18px;
       background: #fafafa;
       touch-action: none;
-      margin: 10px auto;
+      margin: 0 auto 12px;
       display: block;
       cursor: crosshair;
     }
     .btn {
       border: none;
-      border-radius: 20px;
-      font-size: 22px;
+      border-radius: 18px;
+      font-size: 20px;
       font-weight: bold;
-      padding: 14px 20px;
+      padding: 12px 18px;
       cursor: pointer;
-      margin: 5px;
+      margin: 4px;
     }
     .ok-btn { background: #4caf50; color: white; }
-    .clear-btn { background: #9e9e9e; color: white; }
+    .clear-btn { background: #bdbdbd; color: white; }
     .next-btn {
       background: #ff9800;
       color: white;
-      width: 70px;
-      height: 70px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      font-size: 36px;
+      font-size: 32px;
       display: block;
-      margin: 15px auto 5px;
+      margin: 12px auto 4px;
     }
     .feedback {
-      font-size: 26px;
-      margin: 15px 0 5px;
-      min-height: 35px;
+      font-size: 24px;
+      margin: 10px 0 4px;
+      min-height: 32px;
       font-weight: bold;
     }
     .feedback.good { color: #4caf50; }
-    .feedback.try { color: #ff9800; }
     .progress {
-      margin-top: 10px;
-      font-size: 16px;
-      color: #666;
+      margin-top: 8px;
+      font-size: 15px;
+      color: #777;
     }
     .done {
       font-size: 48px;
@@ -93,16 +103,17 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-top: 8px;
+      margin-top: 6px;
     }
   </style>
 </head>
 <body>
   <div class="card" id="app">
-    <div class="mode-title" id="modeTitle">Kanji Practice</div>
-    <div class="kanji" id="kanji">一</div>
-    <div class="question" id="question">Write this Kanji</div>
-    <canvas id="canvas" width="300" height="180"></canvas>
+    <div class="header" id="modeTitle">Write Kanji</div>
+    <div class="info" id="info">一 (ichi) ・ one</div>
+    <div class="kanji-big" id="kanji">一</div>
+    <div class="write-label">Write Kanji</div>
+    <canvas id="canvas" width="280" height="180"></canvas>
     <div class="buttons">
       <button class="btn clear-btn" id="clearBtn">Clear</button>
       <button class="btn ok-btn" id="okBtn">OK</button>
@@ -117,12 +128,12 @@
       { kanji: "一", reading: "ichi", meaning: "one" },
       { kanji: "二", reading: "ni", meaning: "two" },
       { kanji: "三", reading: "san", meaning: "three" },
-      { kanji: "四", reading: "shi", meaning: "four" },
+      { kanji: "四", reading: "shi / yon", meaning: "four" },
       { kanji: "五", reading: "go", meaning: "five" },
       { kanji: "六", reading: "roku", meaning: "six" },
-      { kanji: "七", reading: "nana", meaning: "seven" },
+      { kanji: "七", reading: "nana / shichi", meaning: "seven" },
       { kanji: "八", reading: "hachi", meaning: "eight" },
-      { kanji: "九", reading: "kyuu", meaning: "nine" },
+      { kanji: "九", reading: "kyuu / ku", meaning: "nine" },
       { kanji: "十", reading: "juu", meaning: "ten" }
     ];
 
@@ -139,15 +150,16 @@
       { kanji: "十", q: "5 + 5 = ?", a: "10" }
     ];
 
-    let mode = "kanji"; // or "math"
+    let mode = "kanji";
     let queue = [...KANJI_LIST];
     let current = null;
     let correctCount = 0;
     let total = KANJI_LIST.length;
 
     const modeTitle = document.getElementById("modeTitle");
+    const infoEl = document.getElementById("info");
     const kanjiEl = document.getElementById("kanji");
-    const questionEl = document.getElementById("question");
+    const questionEl = document.querySelector(".write-label");
     const feedbackEl = document.getElementById("feedback");
     const progressEl = document.getElementById("progress");
     const okBtn = document.getElementById("okBtn");
@@ -157,7 +169,7 @@
     const ctx = canvas.getContext("2d");
 
     let drawing = false;
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 7;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#222";
 
@@ -201,7 +213,6 @@
     function loadNext() {
       if (queue.length === 0) {
         if (mode === "kanji") {
-          // Switch to math
           mode = "math";
           queue = [...MATH_LIST];
           correctCount = 0;
@@ -217,9 +228,13 @@
       current = queue.shift();
       kanjiEl.textContent = current.kanji;
       if (mode === "kanji") {
-        questionEl.textContent = "Write this Kanji";
+        infoEl.textContent = `${current.kanji} (${current.reading}) ・ ${current.meaning}`;
+        questionEl.textContent = "Write Kanji";
+        modeTitle.textContent = "Write Kanji";
       } else {
+        infoEl.textContent = current.kanji;
         questionEl.textContent = current.q;
+        modeTitle.textContent = "Math";
       }
       clearCanvas();
       feedbackEl.textContent = "";
@@ -228,7 +243,7 @@
     }
 
     function updateProgress() {
-      progressEl.textContent = `Done: ${correctCount} / ${total}`;
+      progressEl.textContent = `Progress: ${correctCount} / ${total}`;
     }
 
     function showDone() {
@@ -239,27 +254,15 @@
       `;
     }
 
-    // Fun positive feedback for Kanji (no hard recognition for now)
-    const niceMessages = ["Nice!", "Good job!", "Almost there!", "Looking good!", "Well done!"];
+    const niceMessages = ["Nice!", "Good job!", "Looking good!", "Well done!", "Great!"];
 
     okBtn.onclick = () => {
       if (!current) return;
-      if (mode === "kanji") {
-        // Always positive, never stuck
-        const msg = niceMessages[Math.floor(Math.random() * niceMessages.length)];
-        feedbackEl.textContent = msg;
-        feedbackEl.className = "feedback good";
-        correctCount++;
-        setTimeout(loadNext, 700);
-      } else {
-        // Math still uses simple check for now
-        feedbackEl.textContent = "Nice try!";
-        feedbackEl.className = "feedback try";
-        setTimeout(() => {
-          queue.push(current);
-          loadNext();
-        }, 600);
-      }
+      const msg = niceMessages[Math.floor(Math.random() * niceMessages.length)];
+      feedbackEl.textContent = msg;
+      feedbackEl.className = "feedback good";
+      correctCount++;
+      setTimeout(loadNext, 700);
     };
 
     nextBtn.onclick = () => {
