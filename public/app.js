@@ -66,6 +66,15 @@
   var speakBtn = document.getElementById("speakBtn");
   var songBtn = document.getElementById("songBtn");
   var bgmBtn = document.getElementById("bgmBtn");
+  var strokeBtn = document.getElementById("strokeBtn");
+  var strokeSvg = document.getElementById("strokeSvg");
+  var unitMark = document.getElementById("unitMark");
+  var kanjiUserStrokes = [];
+  var hintIndex = 0;
+  var strokeToken = 0;
+  var strokePlaying = false;
+  var strokeSamples = {};
+  var SVGNS = "http://www.w3.org/2000/svg";
   var progressEl = document.getElementById("progress");
   var backBtn = document.getElementById("backBtn");
   var againBtn = document.getElementById("againBtn");
@@ -219,7 +228,9 @@
         kanji: k.kanji,
         speak: k.speak,
         reading: k.speak,
-        answer: k.kanji
+        answer: k.kanji,
+        unit: k.unit || 0,
+        volume: k.volume || ""
       };
     }
     var m = KUKU_BY_ID[ref.id];
@@ -298,8 +309,9 @@
     canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
   }
 
-  function bindDraw(canvas, lineWidth, allowSticker) {
+  function bindDraw(canvas, lineWidth, allowSticker, hooks) {
     var drawing = false;
+    var pts = null;
     canvas.addEventListener("pointerdown", function (e) {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       e.preventDefault();
@@ -313,14 +325,17 @@
         EmmaSound.pop();
         return;
       }
+      if (hooks && hooks.onStart) hooks.onStart();
       canvas.setPointerCapture(e.pointerId);
       drawing = true;
+      pts = [];
       var ctx = canvas.getContext("2d");
       ctx.lineWidth = lineWidth;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.strokeStyle = "#241b38";
       var p = pos(canvas, e);
+      pts.push(p);
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(p.x + 0.2, p.y + 0.2);
@@ -330,10 +345,15 @@
       if (!drawing) return;
       e.preventDefault();
       var p = pos(canvas, e);
+      if (pts) pts.push(p);
       canvas.getContext("2d").lineTo(p.x, p.y);
       canvas.getContext("2d").stroke();
     }, { passive: false });
-    function end() { drawing = false; }
+    function end() {
+      if (drawing && pts && pts.length > 1 && hooks && hooks.onStroke) hooks.onStroke(pts);
+      drawing = false;
+      pts = null;
+    }
     canvas.addEventListener("pointerup", end);
     canvas.addEventListener("pointercancel", end);
   }
@@ -533,6 +553,207 @@ if (copy) {
     return { kind: "maru", score: score };
   }
 
+  function strokesFor(ch) {
+    return (window.STROKES && STROKES[ch]) || [];
+  }
+
+  function circled(n) {
+    if (n >= 1 && n <= 20) return String.fromCharCode(0x2460 + n - 1);
+    return String(n);
+  }
+
+  function expectedStrokes(ch) {
+    if (strokeSamples[ch]) return strokeSamples[ch];
+    var paths = strokesFor(ch);
+    var holder = document.createElementNS(SVGNS, "svg");
+    holder.setAttribute("width", "0");
+    holder.setAttribute("height", "0");
+    holder.style.position = "absolute";
+    holder.style.left = "-9999px";
+    document.body.appendChild(holder);
+    var out = paths.map(function (d) {
+      var path = document.createElementNS(SVGNS, "path");
+      path.setAttribute("d", d);
+      holder.appendChild(path);
+      var len = 0;
+      try { len = path.getTotalLength(); } catch (e) { len = 0; }
+      var pts = [];
+      var steps = 8;
+      for (var i = 0; i <= steps; i++) {
+        var p = len ? path.getPointAtLength(len * i / steps) : { x: 0, y: 0 };
+        pts.push({ x: p.x / 109, y: p.y / 109 });
+      }
+      return pts;
+    });
+    holder.remove();
+    strokeSamples[ch] = out;
+    return out;
+  }
+
+  function stopStrokePlay() {
+    strokeToken++;
+    strokePlaying = false;
+    if (!strokeSvg) return;
+    strokeSvg.innerHTML = "";
+    strokeSvg.style.opacity = "1";
+  }
+
+  function showHintStroke(ch) {
+    if (strokePlaying) return;
+    var paths = strokesFor(ch);
+    if (!strokeSvg || !paths.length || hintIndex >= paths.length) {
+      if (strokeSvg && !strokePlaying) strokeSvg.innerHTML = "";
+      return;
+    }
+    strokeSvg.innerHTML = "";
+    strokeSvg.style.opacity = "1";
+    addStrokePath(paths[hintIndex], hintIndex, true);
+  }
+
+  function addStrokePath(d, index, hint) {
+    var path = document.createElementNS(SVGNS, "path");
+    path.setAttribute("d", d);
+    if (hint) path.setAttribute("class", "hint-stroke");
+    strokeSvg.appendChild(path);
+    var len = 1;
+    try { len = path.getTotalLength() || 1; } catch (e) { len = 1; }
+    var p0 = path.getPointAtLength(0);
+    var label = document.createElementNS(SVGNS, "text");
+    label.setAttribute("x", p0.x);
+    label.setAttribute("y", p0.y);
+    label.textContent = circled(index + 1);
+    strokeSvg.appendChild(label);
+    return { path: path, len: len };
+  }
+
+  function playStrokeOrder(ch, opts) {
+    opts = opts || {};
+    var paths = strokesFor(ch);
+    strokeToken++;
+    var token = strokeToken;
+    strokePlaying = true;
+    if (!strokeSvg) { strokePlaying = false; return; }
+    strokeSvg.innerHTML = "";
+    strokeSvg.style.opacity = "1";
+    if (!paths.length) { strokePlaying = false; return; }
+    var i = 0;
+    function step() {
+      if (token !== strokeToken) return;
+      if (i >= paths.length) {
+        strokePlaying = false;
+        if (opts.fade) {
+          setTimeout(function () {
+            if (token !== strokeToken) return;
+            strokeSvg.style.opacity = "0";
+            setTimeout(function () {
+              if (token !== strokeToken) return;
+              strokeSvg.innerHTML = "";
+              strokeSvg.style.opacity = "1";
+              showHintStroke(ch);
+            }, 280);
+          }, 280);
+        }
+        return;
+      }
+      var drawn = addStrokePath(paths[i], i, false);
+      drawn.path.style.strokeDasharray = String(drawn.len);
+      drawn.path.style.strokeDashoffset = String(drawn.len);
+      var dur = Math.max(260, Math.min(640, drawn.len * 3.2));
+      drawn.path.style.transition = "stroke-dashoffset " + dur + "ms linear";
+      requestAnimationFrame(function () {
+        if (token !== strokeToken) return;
+        drawn.path.style.strokeDashoffset = "0";
+      });
+      i++;
+      setTimeout(step, dur + 90);
+    }
+    step();
+  }
+
+  function normUserStroke(pts, canvas) {
+    return pts.map(function (p) {
+      return { x: p.x / canvas.width, y: p.y / canvas.height };
+    });
+  }
+
+  function strokeMatch(userPts, expPts) {
+    if (!userPts || userPts.length < 2 || !expPts || expPts.length < 2) return false;
+    var us = userPts[0];
+    var ue = userPts[userPts.length - 1];
+    var es = expPts[0];
+    var ee = expPts[expPts.length - 1];
+    var start = Math.hypot(us.x - es.x, us.y - es.y);
+    var udx = ue.x - us.x;
+    var udy = ue.y - us.y;
+    var edx = ee.x - es.x;
+    var edy = ee.y - es.y;
+    var ul = Math.hypot(udx, udy);
+    var el = Math.hypot(edx, edy);
+    var dot = 1;
+    if (ul > 0.03 && el > 0.03) dot = (udx * edx + udy * edy) / (ul * el);
+    var um = userPts[Math.floor(userPts.length / 2)];
+    var em = expPts[Math.floor(expPts.length / 2)];
+    var mid = Math.hypot(um.x - em.x, um.y - em.y);
+    return start < 0.28 && mid < 0.32 && dot > 0.15;
+  }
+
+  function classifyOrder(userStrokes, ch, canvas) {
+    var exp = expectedStrokes(ch);
+    if (!exp.length || !userStrokes.length) return "unknown";
+    var normed = userStrokes.map(function (s) { return normUserStroke(s, canvas); });
+    var n = exp.length;
+    var m = normed.length;
+    var matched = 0;
+    var limit = Math.min(m, n);
+    for (var i = 0; i < limit; i++) if (strokeMatch(normed[i], exp[i])) matched++;
+    var seq = matched / n;
+    if (seq >= 0.6 && m >= n * 0.5) return "good";
+    if (m <= 2 && n >= 5) return "wrong";
+    if (seq < 0.25 && m >= 2) return "wrong";
+    if (seq >= 0.25) return "slip";
+    return "wrong";
+  }
+
+  function withOrder(result, canvas, answer, copy) {
+    var order = classifyOrder(kanjiUserStrokes, answer, canvas);
+    if (order === "unknown" || result.kind === "empty") return result;
+    if (copy) {
+      if (result.kind === "keep") return result;
+      if (order === "good") return { kind: "hanamaru", score: result.score, order: order };
+      return { kind: result.kind === "miss" ? "maru" : "maru", score: result.score, order: order };
+    }
+    if (order === "wrong") return { kind: "miss", score: result.score, order: "wrong" };
+    if (order === "slip") {
+      if (result.kind === "miss" && result.score < 0.35) return { kind: "miss", score: result.score, order: "wrong" };
+      return { kind: "maru", score: result.score, order: "slip" };
+    }
+    if (order === "good") {
+      if (result.kind === "hanamaru" || result.score >= 0.62) return { kind: "hanamaru", score: result.score, order: "good" };
+      return { kind: "maru", score: result.score, order: "good" };
+    }
+    return result;
+  }
+
+  function noteStrokeMatch() {
+    if (!active || !active.queue.length || active.queue[0].kind !== "kanji") return;
+    var ch = active.queue[0].id;
+    var exp = expectedStrokes(ch);
+    if (hintIndex >= exp.length) return;
+    var last = kanjiUserStrokes[kanjiUserStrokes.length - 1];
+    if (!last) return;
+    if (strokeMatch(normUserStroke(last, kanjiInk), exp[hintIndex])) {
+      hintIndex++;
+      EmmaSound.pop();
+      showHintStroke(ch);
+    }
+  }
+
+  function resetKanjiDrawing() {
+    clearInk(kanjiInk);
+    kanjiUserStrokes = [];
+    hintIndex = 0;
+  }
+
   function setFeedback(text, kind) {
     feedbackEl.textContent = text;
     feedbackEl.className = "feedback" + (kind ? " " + kind : "");
@@ -549,7 +770,8 @@ if (copy) {
     busy = false;
     EmmaSound.stopSong();
     songBtn.textContent = "九九のうた";
-    clearInk(kanjiInk);
+    stopStrokePlay();
+    resetKanjiDrawing();
     clearInk(mathInk);
     clearInk(kanjiGuide);
     clearInk(mathGuide);
@@ -559,11 +781,17 @@ if (copy) {
     kanjiBoard.hidden = !isKanji;
     mathBoard.hidden = isKanji;
     document.body.dataset.mode = isKanji ? "kanji" : "kuku";
+    if (unitMark) {
+      unitMark.hidden = !(isKanji && view.unit);
+      unitMark.textContent = view.unit ? (view.unit + " ばん") : "";
+    }
+    if (strokeBtn) strokeBtn.hidden = !isKanji;
     if (isKanji) {
       questionEl.hidden = true;
       readingEl.hidden = !view.copy;
       readingEl.textContent = view.copy ? view.reading : "";
       if (view.copy) paintGuide(kanjiGuide, view.answer);
+      playStrokeOrder(view.answer, { fade: !view.copy });
       EmmaSound.startBgm();
       songBtn.hidden = true;
       bgmBtn.hidden = false;
@@ -639,6 +867,7 @@ if (copy) {
     var result;
     try {
       result = judge(canvas, view.answer, !!view.copy, view.kind);
+      if (view.kind === "kanji") result = withOrder(result, canvas, view.answer, !!view.copy);
     } catch (err) {
       var stats = inkStats(canvas);
       result = stats.count > 220 ? { kind: "maru", score: 0 } : { kind: "empty", score: 0 };
@@ -652,36 +881,41 @@ if (copy) {
       return;
     }
     if (result.kind === "miss") {
-      onMiss(ref);
+      onMiss(ref, result.order === "wrong" ? "かきじゅんを みてね" : "もういちど かこう");
       return;
     }
     busy = true;
     var great = result.kind === "hanamaru";
-    setFeedback(great ? "はなまる！" : "まる！", great ? "hanamaru" : "maru");
+    var praise = great ? "はなまる！" : (result.order === "slip" ? "まる！ かきじゅんも みてね" : "まる！");
+    setFeedback(praise, great ? "hanamaru" : "maru");
     EmmaSound.chime(great ? "hanamaru" : "maru");
+    if (result.order === "slip" && view.kind === "kanji") playStrokeOrder(view.answer, { fade: true });
     if (ref.fromRemember && !ref.copy) removeRemember(ref);
     setTimeout(function () {
       if (!active) return;
       active.queue.shift();
       renderFromActive();
-    }, 800);
+    }, result.order === "slip" ? 1500 : 800);
   }
 
-  function onMiss(ref) {
+  function onMiss(ref, message) {
     busy = true;
     ref.misses = (ref.misses || 0) + 1;
-    setFeedback("もういちど かこう", "retry");
+    setFeedback(message || "もういちど かこう", "retry");
     setTimeout(function () {
       if (!active || active.queue[0] !== ref) {
         busy = false;
         return;
       }
-      clearInk(ref.kind === "kanji" ? kanjiInk : mathInk);
+      if (ref.kind === "kanji") resetKanjiDrawing();
+      else clearInk(mathInk);
       if (ref.misses >= 3 && !ref.copy) {
         ref.copy = true;
         addRemember(ref);
         renderFromActive();
         setFeedback("これを かこう", "retry");
+      } else if (ref.kind === "kanji") {
+        playStrokeOrder(ref.id, { fade: true });
       }
       busy = false;
       saveActive();
@@ -1033,7 +1267,13 @@ soonEl.hidden = true;
     a.click();
   }
 
-  bindDraw(kanjiInk, 18, false);
+  bindDraw(kanjiInk, 18, false, {
+    onStart: function () { stopStrokePlay(); },
+    onStroke: function (pts) {
+      kanjiUserStrokes.push(pts);
+      noteStrokeMatch();
+    }
+  });
   bindDraw(mathInk, 20, false);
   bindDraw(playInk, 16, true);
 
@@ -1108,8 +1348,20 @@ soonEl.hidden = true;
 
   clearBtn.addEventListener("click", function () {
     if (!active || !active.queue.length) return;
-    clearInk(active.queue[0].kind === "kanji" ? kanjiInk : mathInk);
+    if (active.queue[0].kind === "kanji") {
+      stopStrokePlay();
+      resetKanjiDrawing();
+      showHintStroke(active.queue[0].id);
+    } else {
+      clearInk(mathInk);
+    }
   });
+  if (strokeBtn) {
+    strokeBtn.addEventListener("click", function () {
+      if (!active || !active.queue.length || active.queue[0].kind !== "kanji") return;
+      playStrokeOrder(active.queue[0].id, { fade: !active.queue[0].copy });
+    });
+  }
   doneBtn.addEventListener("click", onDone);
   skipBtn.addEventListener("click", onSkip);
   speakBtn.addEventListener("click", function () {
@@ -1186,6 +1438,31 @@ soonEl.hidden = true;
       inkCanvas: function () {
         var view = hydrate(active.queue[0]);
         return view.kind === "kanji" ? kanjiInk : mathInk;
+      },
+      drawOrder: function (reverse) {
+        var view = hydrate(active.queue[0]);
+        resetKanjiDrawing();
+        var exp = expectedStrokes(view.answer).slice();
+        if (reverse) exp.reverse();
+        var ctx = kanjiInk.getContext("2d");
+        ctx.lineWidth = 18;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#241b38";
+        exp.forEach(function (pts) {
+          var pix = pts.map(function (p) {
+            return { x: p.x * kanjiInk.width, y: p.y * kanjiInk.height };
+          });
+          kanjiUserStrokes.push(pix);
+          ctx.beginPath();
+          ctx.moveTo(pix[0].x, pix[0].y);
+          pix.slice(1).forEach(function (p) { ctx.lineTo(p.x, p.y); });
+          ctx.stroke();
+        });
+      },
+      orderOf: function () {
+        var view = hydrate(active.queue[0]);
+        return classifyOrder(kanjiUserStrokes, view.answer, kanjiInk);
       }
     };
   }
