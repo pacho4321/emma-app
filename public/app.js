@@ -295,6 +295,13 @@
     updateBgmLabel();
   }
 
+  function fitHome() {
+    var stage = document.getElementById("skyStage");
+    if (!stage) return;
+    var s = Math.min(window.innerWidth / 784, window.innerHeight / 1168);
+    stage.style.transform = "scale(" + s + ")";
+  }
+
   function showHome() {
     stopPlayTimer();
     stopCamera();
@@ -302,6 +309,7 @@
     EmmaSound.stopBgm();
     songBtn.textContent = "九九のうた";
     showOnly("home");
+    fitHome();
   }
 
   function pos(canvas, e) {
@@ -765,6 +773,66 @@ if (copy) {
   function setFeedback(text, kind) {
     feedbackEl.textContent = text;
     feedbackEl.className = "feedback" + (kind ? " " + kind : "");
+    var stars = document.getElementById("praiseStars");
+    if (stars) stars.hidden = !(kind === "maru" || kind === "hanamaru");
+    if (kind === "triangle") {
+      var cheer = document.getElementById("cheer");
+      if (cheer) cheer.hidden = false;
+    }
+  }
+
+  function glyphNode(ch) {
+    var img = document.createElement("img");
+    img.alt = ch;
+    img.draggable = false;
+    if (ch >= "1" && ch <= "9") {
+      img.className = "num";
+      img.src = "assets/numbers/" + ch + ".webp";
+      return img;
+    }
+    if (ch === "0") {
+      img.className = "num zero";
+      img.src = "assets/numbers/0.svg";
+      return img;
+    }
+    var ops = { "+": "plus", "-": "minus", "×": "times", "=": "eq", "?": "q" };
+    if (!ops[ch]) return null;
+    img.className = "op op-" + ops[ch];
+    img.src = "assets/ops/" + ops[ch] + ".svg";
+    return img;
+  }
+
+  function renderEquation(el, parts) {
+    el.innerHTML = "";
+    var count = 0;
+    parts.forEach(function (part) {
+      var group = document.createElement("span");
+      group.className = "eq-part";
+      String(part).split("").forEach(function (ch) {
+        var node = glyphNode(ch);
+        if (!node) return;
+        group.appendChild(node);
+        count++;
+      });
+      if (group.childNodes.length) el.appendChild(group);
+    });
+    el.classList.toggle("long", count > 5);
+    el.setAttribute("aria-label", parts.join(" "));
+  }
+
+  function equationFor(view, hint) {
+    var reveal = !!(view.copy || hint >= 3);
+    if (view.promptText && /[0-9]/.test(view.promptText)) {
+      var parts = view.promptText.split(/\s+/).filter(Boolean);
+      parts.push("=");
+      parts.push(reveal ? String(view.answer) : "?");
+      return parts;
+    }
+    if (view.a && view.b && !view.op) {
+      if (view.story && !view.copy && hint < 2) return null;
+      return [String(view.a), "×", String(view.b), "=", reveal ? String(view.answer) : "?"];
+    }
+    return null;
   }
 
   function banner(view) {
@@ -846,6 +914,31 @@ if (copy) {
       if (hint >= 1) {
         if (isTimes) playFactSong(view);
         else EmmaSound.speak(view.speak);
+      }
+    }
+    var eqEl = document.getElementById("equation");
+    var cheer = document.getElementById("cheer");
+    var apples = document.getElementById("appleHint");
+    var kukuBanner = document.getElementById("kukuBanner");
+    var timesHead = !isKanji && view.a && view.b && !view.op;
+    if (kukuBanner) kukuBanner.hidden = !timesHead;
+    if (modeTitle) {
+      modeTitle.hidden = timesHead;
+      if (!isKanji && !timesHead) modeTitle.textContent = view.label || "さんすう";
+    }
+    if (cheer) cheer.hidden = hint === 0;
+    if (apples) {
+      apples.hidden = !(!isKanji && hint >= 1 && ((view.a === 2 && view.b === 3) || (view.a === 3 && view.b === 2)));
+    }
+    if (eqEl) {
+      var eq = isKanji ? null : equationFor(view, hint);
+      if (eq) {
+        renderEquation(eqEl, eq);
+        eqEl.hidden = false;
+        if (!view.story) questionEl.hidden = true;
+      } else {
+        eqEl.hidden = true;
+        eqEl.innerHTML = "";
       }
     }
     updateBgmLabel();
@@ -1476,6 +1569,7 @@ soonEl.hidden = true;
 
   applySoundFlags();
   showHome();
+  window.addEventListener("resize", fitHome);
   EmmaSound.unlock().then(function () { EmmaSound.playOpening(); }).catch(function () {});
 
   if (TEST_MODE) {

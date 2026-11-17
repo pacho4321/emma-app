@@ -4,53 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>エマの漢字と九九</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff4f93'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="app.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff4f93'/%3E%3C/svg%3E">
 </head>
 <body>
+  <div class="sky-bits" aria-hidden="true">
+    <img class="bit bit-c1" src="assets/cloud-white.webp" alt="">
+    <img class="bit bit-c2" src="assets/cloud-pink.webp" alt="">
+    <img class="bit bit-c3" src="assets/cloud-purple.webp" alt="">
+    <img class="bit bit-s1" src="assets/star-yellow.webp" alt="">
+    <img class="bit bit-s2" src="assets/star-blue.webp" alt="">
+    <img class="bit bit-s3" src="assets/star-pink.webp" alt="">
+  </div>
   <section id="home" class="sky-home">
-    <div class="sky-clouds" aria-hidden="true"></div>
-    <div class="sky-stars" aria-hidden="true"></div>
-    <div class="top-tools">
-      <button type="button" id="muteBtn" class="gear" aria-label="おと">⚙</button>
-      <button type="button" id="moreBtn" class="dots" aria-label="もっと">···</button>
+    <div class="sky-stage" id="skyStage">
+      <img class="deco c-white" src="assets/cloud-white.webp" alt="">
+      <img class="deco c-pink" src="assets/cloud-pink.webp" alt="">
+      <img class="deco c-purple" src="assets/cloud-purple.webp" alt="">
+      <img class="deco c-pink2" src="assets/cloud-pink.webp" alt="">
+      <img class="deco s-y1" src="assets/star-yellow.webp" alt="">
+      <img class="deco s-y2" src="assets/star-yellow.webp" alt="">
+      <img class="deco s-b1" src="assets/star-blue.webp" alt="">
+      <img class="deco s-b2" src="assets/star-blue.webp" alt="">
+      <img class="deco s-p1" src="assets/star-pink.webp" alt="">
+      <img class="deco s-p2" src="assets/star-pink.webp" alt="">
+      <img class="deco d-bunny" src="assets/bunny.webp" alt="">
+      <img class="deco d-banner" src="assets/banner-home.webp" alt="今日もがんばろう！">
+      <h1 class="d-title"><img src="assets/title.webp" alt="エマの漢字と九九"></h1>
+      <button type="button" id="muteBtn" class="corner gear" aria-label="おと">⚙</button>
+      <button type="button" id="moreBtn" class="corner more" aria-label="もっと">···</button>
+      <button type="button" id="startKanji" class="art-btn kanji">
+        <img src="assets/button-kanji.webp" alt="">
+        <span class="btn-label"><span class="br">漢字</span><span class="pk">を</span><span class="pu">練習</span></span>
+      </button>
+      <button type="button" id="startMath" class="art-btn kuku" aria-label="九九を練習">
+        <img src="assets/button-kuku.webp" alt="">
+      </button>
     </div>
-    <div class="bunny" aria-hidden="true">
-      <svg viewBox="0 0 120 120">
-        <ellipse cx="38" cy="28" rx="14" ry="26" fill="#fff" stroke="#f3b6d4" stroke-width="3"/>
-        <ellipse cx="82" cy="28" rx="14" ry="26" fill="#fff" stroke="#f3b6d4" stroke-width="3"/>
-        <ellipse cx="38" cy="30" rx="7" ry="16" fill="#ffb7d5"/>
-        <ellipse cx="82" cy="30" rx="7" ry="16" fill="#ffb7d5"/>
-        <circle cx="60" cy="68" r="40" fill="#fff" stroke="#f3b6d4" stroke-width="3"/>
-        <circle cx="46" cy="64" r="5" fill="#2a2140"/>
-        <circle cx="74" cy="64" r="5" fill="#2a2140"/>
-        <ellipse cx="60" cy="76" rx="5" ry="4" fill="#ff8fb8"/>
-        <ellipse cx="40" cy="78" rx="7" ry="4" fill="#ffd0e4"/>
-        <ellipse cx="80" cy="78" rx="7" ry="4" fill="#ffd0e4"/>
-        <path d="M78 18c10-8 22-4 20 8" fill="none" stroke="#ff6fa3" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="96" cy="14" r="6" fill="#ff6fa3"/>
-      </svg>
-    </div>
-    <div class="ribbon">★ 今日もがんばろう！ ★</div>
-    <h1 class="sky-title">
-      <span class="ema">エマ</span>
-      <span class="no">の漢字と</span>
-      <span class="kuku">九九</span>
-    </h1>
-    <button type="button" id="startKanji" class="sky-btn pink">
-      <span class="ico book" aria-hidden="true">📖</span>
-      <span>漢字を練習</span>
-    </button>
-    <button type="button" id="startMath" class="sky-btn purple">
-      <span class="ico grid" aria-hidden="true">
-        <i>1</i><i>3</i><i>3</i>
-        <i>5</i><i>4</i><i>8</i>
-        <i>×</i><i>4</i><i>×</i>
-      </span>
-      <span>九九を練習</span>
-    </button>
-    <div class="smile-star" aria-hidden="true">★</div>
-    <p class="credit">かきじゅんのデータは KanjiVG（CC BY-SA）</p>
   </section>
 
   <main class="card">
@@ -95,11 +85,18 @@
     </section>
 
     <section id="study" hidden>
-      <div class="banner" id="modeTitle">かんじ</div>
+      <div class="study-head">
+        <img class="mini-bunny" src="assets/bunny.webp" alt="">
+        <div class="banner" id="modeTitle">かんじ</div>
+        <img class="kuku-banner" id="kukuBanner" src="assets/banner-kuku.webp" alt="九九" hidden>
+      </div>
+      <img class="cheer" id="cheer" src="assets/banner-ganbatte.webp" alt="がんばってね！" hidden>
       <p class="hint-badge" id="hintBadge" hidden>ヒント 1</p>
       <p class="prompt" id="prompt">きいて、かんじを かこう</p>
       <p class="unit-mark" id="unitMark" hidden></p>
       <div class="question" id="question" hidden>2 × 3</div>
+      <div class="equation" id="equation" hidden></div>
+      <img class="apple-hint" id="appleHint" src="assets/apples.webp" alt="" hidden>
       <p class="reading" id="reading" hidden></p>
       <div class="masu" id="kanjiBoard">
         <div class="grid-v"></div>
@@ -113,6 +110,11 @@
         <canvas id="mathGuide" width="420" height="240"></canvas>
         <canvas id="mathInk" width="420" height="240"></canvas>
       </div>
+      <div class="praise-stars" id="praiseStars" hidden>
+        <img src="assets/star-yellow.webp" alt="">
+        <img src="assets/star-pink.webp" alt="">
+        <img src="assets/star-blue.webp" alt="">
+      </div>
       <div class="feedback" id="feedback" aria-live="polite"></div>
       <div class="actions">
         <button type="button" id="clearBtn" class="btn amber">けす</button>
@@ -121,7 +123,7 @@
       </div>
       <div class="listen">
         <div>
-          <button type="button" id="speakBtn" class="speak" aria-label="きく">🔊</button>
+          <button type="button" id="speakBtn" class="speak" aria-label="きく"><img src="assets/speaker.webp" alt=""></button>
           <div class="hint-label">きく</div>
         </div>
         <button type="button" id="songBtn" class="btn purple" hidden>九九のうた</button>
@@ -130,10 +132,15 @@
       </div>
       <div class="progress" id="progress">あと 8 もん</div>
       <button type="button" id="backBtn" class="btn blue back">もどる</button>
+      <p class="credit">かきじゅんのデータは KanjiVG（CC BY-SA）</p>
     </section>
 
     <section id="done" hidden>
-      <div class="cute-row" aria-hidden="true">🧁 ✨ 🌸</div>
+      <div class="praise-stars" aria-hidden="true">
+        <img src="assets/star-yellow.webp" alt="">
+        <img src="assets/star-pink.webp" alt="">
+        <img src="assets/star-blue.webp" alt="">
+      </div>
       <div class="done-mark" aria-hidden="true">✨</div>
       <h2 class="done-title">すごい！じょうず！</h2>
       <p class="done-lead" id="doneLead">エマ、がんばったね</p>
