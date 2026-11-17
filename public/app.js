@@ -816,7 +816,7 @@ if (copy) {
       });
       if (group.childNodes.length) el.appendChild(group);
     });
-    el.classList.toggle("long", count > 5);
+    el.style.setProperty("--eq-n", String(Math.max(count, 1)));
     el.setAttribute("aria-label", parts.join(" "));
   }
 
