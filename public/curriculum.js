@@ -1414,6 +1414,83 @@ var KUKU = [
 */
 var MATH_PAGES = [
   {
+    "page": 2,
+    "title": "ふくしゅう",
+    "items": [
+      { "kind": "math", "id": "p2-1", "page": 2, "op": "add", "prompt": "23 + 49", "answer": "72", "speak": "にじゅうさん たす よんじゅうきゅう", "label": "たしざん" },
+      { "kind": "math", "id": "p2-2", "page": 2, "op": "add", "prompt": "85 + 6", "answer": "91", "speak": "はちじゅうご たす ろく", "label": "たしざん" },
+      { "kind": "math", "id": "p2-3", "page": 2, "op": "add", "prompt": "70 + 51", "answer": "121", "speak": "ななじゅう たす ごじゅういち", "label": "たしざん" },
+      { "kind": "math", "id": "p2-4", "page": 2, "op": "add", "prompt": "34 + 67", "answer": "101", "speak": "さんじゅうよん たす ろくじゅうなな", "label": "たしざん" },
+      { "kind": "math", "id": "p2-5", "page": 2, "op": "add", "prompt": "402 + 38", "answer": "440", "speak": "よんひゃくに たす さんじゅうはち", "label": "たしざん" },
+      { "kind": "math", "id": "p2-6", "page": 2, "op": "sub", "prompt": "82 - 15", "answer": "67", "speak": "はちじゅうに ひく じゅうご", "label": "ひきざん" },
+      { "kind": "math", "id": "p2-7", "page": 2, "op": "sub", "prompt": "50 - 7", "answer": "43", "speak": "ごじゅう ひく なな", "label": "ひきざん" },
+      { "kind": "math", "id": "p2-8", "page": 2, "op": "sub", "prompt": "141 - 48", "answer": "93", "speak": "ひゃくよんじゅういち ひく よんじゅうはち", "label": "ひきざん" },
+      { "kind": "math", "id": "p2-9", "page": 2, "op": "sub", "prompt": "103 - 29", "answer": "74", "speak": "ひゃくさん ひく にじゅうきゅう", "label": "ひきざん" },
+      { "kind": "math", "id": "p2-10", "page": 2, "op": "sub", "prompt": "715 - 6", "answer": "709", "speak": "ななひゃくじゅうご ひく ろく", "label": "ひきざん" }
+    ]
+  },
+  {
+    "page": 3,
+    "title": "かけ算",
+    "items": [
+      { "kind": "kuku", "id": "p3-w1", "page": 3, "a": 2, "b": 3, "speak": "にさんがろく", "story": "2こ ずつ 3さら\nなんこ？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p3-w2", "page": 3, "a": 3, "b": 5, "speak": "さんごじゅうご", "story": "3びき ずつ 5つ\nなんびき？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p3-w3", "page": 3, "a": 8, "b": 4, "speak": "はちしさんじゅうに", "story": "8こ ずつ 4はこ\nなんこ？", "label": "もんだい" }
+    ]
+  },
+  {
+    "page": 6,
+    "title": "3のだん",
+    "items": [
+      { "kind": "kuku", "id": "p6-w1", "page": 6, "a": 3, "b": 7, "speak": "さんしちにじゅういち", "story": "3ほん ずつ 7つ\nなんほん？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p6-w2", "page": 6, "a": 3, "b": 6, "speak": "さぶろくじゅうはち", "story": "3こ ずつ 6はこ\nなんこ？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p6-c1", "page": 6, "a": 3, "b": 1, "speak": "さんいちがさん", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c2", "page": 6, "a": 3, "b": 2, "speak": "さんにがろく", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c3", "page": 6, "a": 3, "b": 3, "speak": "さざんがく", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c4", "page": 6, "a": 3, "b": 4, "speak": "さんしじゅうに", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c5", "page": 6, "a": 3, "b": 5, "speak": "さんごじゅうご", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c6", "page": 6, "a": 3, "b": 6, "speak": "さぶろくじゅうはち", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c7", "page": 6, "a": 3, "b": 7, "speak": "さんしちにじゅういち", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c8", "page": 6, "a": 3, "b": 8, "speak": "さんぱちにじゅうし", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-c9", "page": 6, "a": 3, "b": 9, "speak": "さんくにじゅうしち", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m4", "page": 6, "a": 3, "b": 4, "speak": "さんしじゅうに", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m8", "page": 6, "a": 3, "b": 8, "speak": "さんぱちにじゅうし", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m2", "page": 6, "a": 3, "b": 2, "speak": "さんにがろく", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m1", "page": 6, "a": 3, "b": 1, "speak": "さんいちがさん", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m6", "page": 6, "a": 3, "b": 6, "speak": "さぶろくじゅうはち", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m5", "page": 6, "a": 3, "b": 5, "speak": "さんごじゅうご", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m3", "page": 6, "a": 3, "b": 3, "speak": "さざんがく", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m9", "page": 6, "a": 3, "b": 9, "speak": "さんくにじゅうしち", "label": "3のだん" },
+      { "kind": "kuku", "id": "p6-m7", "page": 6, "a": 3, "b": 7, "speak": "さんしちにじゅういち", "label": "3のだん" }
+    ]
+  },
+  {
+    "page": 8,
+    "title": "かけ算",
+    "items": [
+      { "kind": "kuku", "id": "p8-w1", "page": 8, "a": 4, "b": 2, "speak": "しにがはち", "story": "4こ ずつ 2さら\nなんこ？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p8-w2", "page": 8, "a": 3, "b": 8, "speak": "さんぱちにじゅうし", "story": "3びき ずつ 8パック\nなんびき？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p8-3", "page": 8, "a": 5, "b": 2, "speak": "ごにじゅう", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-4", "page": 8, "a": 2, "b": 2, "speak": "ににんがし", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-5", "page": 8, "a": 4, "b": 8, "speak": "しはちさんじゅうに", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-6", "page": 8, "a": 5, "b": 5, "speak": "ごごにじゅうご", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-7", "page": 8, "a": 3, "b": 9, "speak": "さんくにじゅうしち", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-8", "page": 8, "a": 2, "b": 9, "speak": "にくじゅうはち", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-9", "page": 8, "a": 4, "b": 5, "speak": "しごにじゅう", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-10", "page": 8, "a": 3, "b": 1, "speak": "さんいちがさん", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-11", "page": 8, "a": 2, "b": 7, "speak": "にしちじゅうし", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-12", "page": 8, "a": 4, "b": 4, "speak": "ししじゅうろく", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-13", "page": 8, "a": 5, "b": 1, "speak": "ごいちがご", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-14", "page": 8, "a": 3, "b": 7, "speak": "さんしちにじゅういち", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-15", "page": 8, "a": 4, "b": 6, "speak": "しろくにじゅうし", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-16", "page": 8, "a": 2, "b": 8, "speak": "にはちじゅうろく", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-17", "page": 8, "a": 5, "b": 4, "speak": "ごしにじゅう", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-18", "page": 8, "a": 3, "b": 3, "speak": "さざんがく", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-19", "page": 8, "a": 2, "b": 6, "speak": "にろくじゅうに", "label": "かけ算" },
+      { "kind": "kuku", "id": "p8-20", "page": 8, "a": 5, "b": 3, "speak": "ごさんじゅうご", "label": "かけ算" }
+    ]
+  },
+  {
     "page": 10,
     "title": "6のだん",
     "items": [

@@ -8,32 +8,52 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <div class="world" aria-hidden="true">
-    <span class="deco d1">🧁</span>
-    <span class="deco d2">🌸</span>
-    <span class="deco d3">⭐</span>
-    <span class="deco d4">🐰</span>
-    <span class="deco d5">✨</span>
-    <span class="deco d6">🧁</span>
-  </div>
-  <button type="button" id="muteBtn" class="mute">🔊 おと あり</button>
+  <section id="home" class="sky-home">
+    <div class="sky-clouds" aria-hidden="true"></div>
+    <div class="sky-stars" aria-hidden="true"></div>
+    <div class="top-tools">
+      <button type="button" id="muteBtn" class="gear" aria-label="おと">⚙</button>
+      <button type="button" id="moreBtn" class="dots" aria-label="もっと">···</button>
+    </div>
+    <div class="bunny" aria-hidden="true">
+      <svg viewBox="0 0 120 120">
+        <ellipse cx="38" cy="28" rx="14" ry="26" fill="#fff" stroke="#f3b6d4" stroke-width="3"/>
+        <ellipse cx="82" cy="28" rx="14" ry="26" fill="#fff" stroke="#f3b6d4" stroke-width="3"/>
+        <ellipse cx="38" cy="30" rx="7" ry="16" fill="#ffb7d5"/>
+        <ellipse cx="82" cy="30" rx="7" ry="16" fill="#ffb7d5"/>
+        <circle cx="60" cy="68" r="40" fill="#fff" stroke="#f3b6d4" stroke-width="3"/>
+        <circle cx="46" cy="64" r="5" fill="#2a2140"/>
+        <circle cx="74" cy="64" r="5" fill="#2a2140"/>
+        <ellipse cx="60" cy="76" rx="5" ry="4" fill="#ff8fb8"/>
+        <ellipse cx="40" cy="78" rx="7" ry="4" fill="#ffd0e4"/>
+        <ellipse cx="80" cy="78" rx="7" ry="4" fill="#ffd0e4"/>
+        <path d="M78 18c10-8 22-4 20 8" fill="none" stroke="#ff6fa3" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="96" cy="14" r="6" fill="#ff6fa3"/>
+      </svg>
+    </div>
+    <div class="ribbon">★ 今日もがんばろう！ ★</div>
+    <h1 class="sky-title">
+      <span class="ema">エマ</span>
+      <span class="no">の漢字と</span>
+      <span class="kuku">九九</span>
+    </h1>
+    <button type="button" id="startKanji" class="sky-btn pink">
+      <span class="ico book" aria-hidden="true">📖</span>
+      <span>漢字を練習</span>
+    </button>
+    <button type="button" id="startMath" class="sky-btn purple">
+      <span class="ico grid" aria-hidden="true">
+        <i>1</i><i>3</i><i>3</i>
+        <i>5</i><i>4</i><i>8</i>
+        <i>×</i><i>4</i><i>×</i>
+      </span>
+      <span>九九を練習</span>
+    </button>
+    <div class="smile-star" aria-hidden="true">★</div>
+    <p class="credit">かきじゅんのデータは KanjiVG（CC BY-SA）</p>
+  </section>
 
   <main class="card">
-    <section id="home">
-      <div class="cute-row" aria-hidden="true">🧁 ✨ 🐰 ✨ 🌸</div>
-      <div class="banner">★ きょうも がんばろう！ ★</div>
-      <h1 class="title">
-        <span class="pink">エマ</span><br>
-        <span class="purple">の かんじと</span><br>
-        <span class="gold">九九</span>
-      </h1>
-      <div class="pills">
-        <span>📖 かんじ</span>
-        <span>🔢 九九</span>
-      </div>
-      <button type="button" id="startBtn" class="start">はじめる</button>
-      <p class="credit">かきじゅんのデータは KanjiVG（CC BY-SA）</p>
-    </section>
 
     <section id="play" hidden>
       <div class="banner">しゃしん あそび</div>
@@ -76,6 +96,7 @@
 
     <section id="study" hidden>
       <div class="banner" id="modeTitle">かんじ</div>
+      <p class="hint-badge" id="hintBadge" hidden>ヒント 1</p>
       <p class="prompt" id="prompt">きいて、かんじを かこう</p>
       <p class="unit-mark" id="unitMark" hidden></p>
       <div class="question" id="question" hidden>2 × 3</div>
@@ -95,8 +116,8 @@
       <div class="feedback" id="feedback" aria-live="polite"></div>
       <div class="actions">
         <button type="button" id="clearBtn" class="btn amber">けす</button>
-        <button type="button" id="doneBtn" class="btn green">できた</button>
-        <button type="button" id="skipBtn" class="btn pink">あとで</button>
+        <button type="button" id="doneBtn" class="btn green">OK</button>
+        <button type="button" id="skipBtn" class="btn pink">スキップ</button>
       </div>
       <div class="listen">
         <div>

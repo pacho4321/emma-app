@@ -105,7 +105,7 @@
   function known(ref) {
     if (!ref) return false;
     if (ref.kind === "kanji") return !!KANJI_BY_ID[ref.id];
-    if (ref.kind === "kuku") return !!KUKU_BY_ID[ref.id];
+    if (ref.kind === "kuku" || ref.kind === "math") return !!KUKU_BY_ID[ref.id];
     return false;
   }
 
@@ -184,45 +184,33 @@
     return out;
   }
 
-  function makePlan() {
-    var nextSession = progress.sessions + 1;
-    var reviewRound = nextSession % 5 === 0;
-    var counts = dailyCounts(reviewRound);
-    var queue = [];
-    var seen = {};
-    function pushItem(item, extra) {
-      var ref = {
-        kind: item.kind,
-        id: item.id,
-        copy: !!(extra && extra.copy),
-        fromRemember: !!(extra && extra.fromRemember),
-        endRedo: false,
-        misses: 0
-      };
-      var key = ref.kind + ":" + ref.id;
-      if (seen[key]) return;
-      seen[key] = true;
-      queue.push(ref);
-    }
-    if (reviewRound) {
-      progress.remember.slice(0, counts.reviewCap).forEach(function (r) {
-        pushItem(r, { fromRemember: true });
-      });
-    }
-    var kanjiTake = take(KANJI, progress.kanjiIndex, counts.kanji);
-    var useSheet = window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length;
-    var mathList = useSheet ? WORKSHEET_ITEMS : KUKU;
-    var mathStart = useSheet ? (progress.worksheetIndex || 0) : progress.kukuIndex;
-    var kukuTake = take(mathList, mathStart, counts.kuku);
-    interleave(kanjiTake.items, kukuTake.items).forEach(function (item) {
-      pushItem(item, null);
-    });
+  function freshRef(item) {
     return {
-      queue: queue,
-      nextKanji: kanjiTake.next,
-      nextKuku: useSheet ? progress.kukuIndex : kukuTake.next,
-      nextWorksheet: useSheet ? kukuTake.next : (progress.worksheetIndex || 0),
-      reviewRound: reviewRound
+      kind: item.kind,
+      id: item.id,
+      copy: false,
+      fromRemember: false,
+      endRedo: false,
+      misses: 0,
+      hint: 0
+    };
+  }
+
+  function makePlan(mode) {
+    var sessionLen = 10;
+    if (TEST_MODE) sessionLen = Math.min(10, Math.max(1, Number(QUERY.get("n")) || 1));
+    var kanjiMode = mode !== "math";
+    var useSheet = window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length;
+    var list = kanjiMode ? KANJI : (useSheet ? WORKSHEET_ITEMS : KUKU);
+    var start = kanjiMode ? progress.kanjiIndex : (useSheet ? (progress.worksheetIndex || 0) : progress.kukuIndex);
+    var taken = take(list, start, sessionLen);
+    return {
+      queue: taken.items.map(freshRef),
+      mode: kanjiMode ? "kanji" : "math",
+      nextKanji: kanjiMode ? taken.next : progress.kanjiIndex,
+      nextKuku: progress.kukuIndex,
+      nextWorksheet: kanjiMode ? (progress.worksheetIndex || 0) : (useSheet ? taken.next : progress.kukuIndex),
+      reviewRound: false
     };
   }
 
@@ -236,6 +224,7 @@
         fromRemember: !!ref.fromRemember,
         endRedo: !!ref.endRedo,
         misses: ref.misses || 0,
+        hint: ref.hint || 0,
         kanji: k.kanji,
         speak: k.speak,
         reading: k.speak,
@@ -252,12 +241,15 @@
       fromRemember: !!ref.fromRemember,
       endRedo: !!ref.endRedo,
       misses: ref.misses || 0,
+      hint: ref.hint || 0,
       a: m.a,
       b: m.b,
       speak: m.speak,
-      answer: String(m.a * m.b),
+      answer: m.answer || String((m.a || 0) * (m.b || 0)),
       story: m.story || "",
-      label: m.label || ""
+      label: m.label || "",
+      op: m.op || "",
+      promptText: m.prompt || ""
     };
   }
 
@@ -277,6 +269,8 @@
 
   function showOnly(name) {
     home.hidden = name !== "home";
+    var shell = document.querySelector(".card");
+    if (shell) shell.hidden = name === "home";
     play.hidden = name !== "play";
     study.hidden = name !== "study";
     done.hidden = name !== "done";
@@ -284,7 +278,9 @@
   }
 
   function updateMuteLabel() {
-    muteBtn.textContent = progress.mute ? "🔇 おと なし" : "🔊 おと あり";
+    if (!muteBtn) return;
+    muteBtn.textContent = "⚙";
+    muteBtn.setAttribute("aria-label", progress.mute ? "おと なし" : "おと あり");
     muteBtn.setAttribute("aria-pressed", progress.mute ? "true" : "false");
   }
 
@@ -306,7 +302,6 @@
     EmmaSound.stopBgm();
     songBtn.textContent = "九九のうた";
     showOnly("home");
-    startBtn.textContent = readActive() ? "つづき" : "はじめる";
   }
 
   function pos(canvas, e) {
@@ -788,9 +783,15 @@ if (copy) {
     clearInk(mathInk);
     clearInk(kanjiGuide);
     clearInk(mathGuide);
+    var hintBadge = document.getElementById("hintBadge");
     modeTitle.textContent = banner(view);
     var isKanji = view.kind === "kanji";
-    promptEl.textContent = view.copy ? "これを かこう" : (isKanji ? "きいて、かんじを かこう" : "こたえを かこう");
+    var hint = view.copy ? 3 : (view.hint || 0);
+    if (hintBadge) {
+      hintBadge.hidden = hint === 0;
+      hintBadge.textContent = view.copy ? "こたえ" : ("ヒント " + hint);
+    }
+    promptEl.textContent = view.copy ? "これを かこう" : (isKanji ? "かんじを かこう" : "こたえを かこう");
     kanjiBoard.hidden = !isKanji;
     mathBoard.hidden = isKanji;
     document.body.dataset.mode = isKanji ? "kanji" : "kuku";
@@ -809,10 +810,11 @@ if (copy) {
     if (strokeBtn) strokeBtn.hidden = !isKanji;
     if (isKanji) {
       questionEl.hidden = true;
-      readingEl.hidden = !view.copy;
-      readingEl.textContent = view.copy ? view.reading : "";
-      if (view.copy) paintGuide(kanjiGuide, view.answer);
-      playStrokeOrder(view.answer, { fade: !view.copy });
+      readingEl.hidden = !(view.copy || hint >= 2);
+      readingEl.textContent = (view.copy || hint >= 2) ? view.reading : "";
+      if (view.copy || hint >= 3) paintGuide(kanjiGuide, view.answer);
+      if (view.copy || hint >= 2) playStrokeOrder(view.answer, { fade: !view.copy && hint < 3 });
+      if (hint >= 1) EmmaSound.speak(view.speak);
       EmmaSound.startBgm();
       songBtn.hidden = true;
       bgmBtn.hidden = false;
@@ -821,25 +823,40 @@ if (copy) {
       if (!view.copy) speakBtn.classList.add("wiggle");
     } else {
       questionEl.hidden = false;
-      questionEl.classList.toggle("story", !!view.story);
-      if (view.story) {
-        questionEl.textContent = view.copy ? (view.story + " " + view.answer) : view.story;
+      var isTimes = view.a && view.b && !view.op;
+      questionEl.classList.toggle("story", !!view.story && !view.copy && hint < 3);
+      if (view.copy || hint >= 3) {
+        questionEl.textContent = view.story ? (view.story + "\n" + view.answer) : ((view.promptText || (view.a + " × " + view.b)) + " = " + view.answer);
+        paintGuide(mathGuide, view.answer);
+      } else if (view.story && hint >= 2 && isTimes) {
+        questionEl.textContent = view.story + "\n" + view.a + " × " + view.b;
+      } else if (view.story) {
+        questionEl.textContent = view.story;
+      } else if (view.promptText) {
+        questionEl.textContent = view.promptText;
       } else {
-        questionEl.textContent = view.copy
-          ? (view.a + " × " + view.b + " = " + view.answer)
-          : (view.a + " × " + view.b);
+        questionEl.textContent = view.a + " × " + view.b;
       }
-      readingEl.hidden = true;
-      if (view.copy) paintGuide(mathGuide, view.answer);
+      readingEl.hidden = !(isTimes && hint >= 2 && !view.copy);
+      readingEl.textContent = isTimes ? view.speak : "";
       EmmaSound.stopBgm();
-      songBtn.hidden = false;
+      songBtn.hidden = !isTimes;
       bgmBtn.hidden = true;
       speakBtn.classList.remove("wiggle");
+      if (hint >= 1) {
+        if (isTimes) playFactSong(view);
+        else EmmaSound.speak(view.speak);
+      }
     }
     updateBgmLabel();
     progressEl.textContent = "あと " + active.queue.length + " もん";
     setFeedback("", "");
-    if (isKanji || view.copy) EmmaSound.speak(view.speak);
+  }
+
+  function playFactSong(view) {
+    EmmaSound.playSong([{ speak: view.speak }], function () {
+      if (songBtn) songBtn.textContent = "九九のうた";
+    });
   }
 
   function renderFromActive() {
@@ -868,17 +885,22 @@ if (copy) {
     EmmaSound.celebrate();
   }
 
-  function beginStudy() {
+  var lastMode = "kanji";
+  function beginStudy(mode) {
+    lastMode = mode || lastMode || "kanji";
+    mode = lastMode;
     stopPlayTimer();
     stopCamera();
+    var shell = document.querySelector(".card");
+    if (shell) shell.hidden = false;
     var existing = readActive();
-    if (existing) {
+    if (existing && existing.queue && existing.queue.length && (!mode || existing.mode === mode)) {
       active = existing;
       showOnly("study");
       renderFromActive();
       return;
     }
-    active = makePlan();
+    active = makePlan(mode || "kanji");
     progress.sessions += 1;
     saveProgress();
     saveActive();
@@ -908,7 +930,7 @@ if (copy) {
       return;
     }
     if (result.kind === "miss") {
-      onMiss(ref, result.order === "wrong" ? "かきじゅんを みてね" : "もういちど かこう");
+      showTriangle(ref);
       return;
     }
     busy = true;
@@ -923,6 +945,29 @@ if (copy) {
       active.queue.shift();
       renderFromActive();
     }, result.order === "slip" ? 1500 : 800);
+  }
+
+  function showTriangle(ref) {
+    setFeedback("△", "triangle");
+    ref.misses = (ref.misses || 0) + 1;
+    if (ref.copy) {
+      ref.copy = false;
+      ref.hint = 1;
+      ref.misses = 1;
+    } else if (ref.misses >= 3) {
+      ref.copy = true;
+      ref.hint = 3;
+    } else {
+      ref.copy = false;
+      ref.hint = ref.misses;
+    }
+    addRemember(ref);
+    setTimeout(function () {
+      if (!active || active.queue[0] !== ref) return;
+      active.queue.shift();
+      active.queue.push(ref);
+      renderFromActive();
+    }, 700);
   }
 
   function onMiss(ref, message) {
@@ -952,21 +997,19 @@ if (copy) {
   function onSkip() {
     if (busy || !active || !active.queue.length) return;
     var cur = active.queue[0];
-    var endPhase = !!cur.copy && active.queue.every(function (q) { return q.copy; });
-    if (endPhase) {
-      setFeedback("かいてから すすもう", "retry");
-      return;
+    if (!cur.copy) {
+      cur.misses = (cur.misses || 0) + 1;
+      if (cur.misses >= 3) {
+        cur.copy = true;
+        cur.hint = 3;
+      } else {
+        cur.hint = cur.misses;
+        cur.copy = false;
+      }
     }
     addRemember(cur);
     active.queue.shift();
-    active.queue.push({
-      kind: cur.kind,
-      id: cur.id,
-      copy: true,
-      fromRemember: !!cur.fromRemember,
-      endRedo: true,
-      misses: cur.misses || 0
-    });
+    active.queue.push(cur);
     renderFromActive();
   }
 
@@ -1315,11 +1358,16 @@ soonEl.hidden = true;
     }
   });
 
-  startBtn.addEventListener("click", function () {
+  function arm(mode) {
     EmmaSound.unlock().then(function () { EmmaSound.playOpening(); });
-    if (readActive()) beginStudy();
-    else startCameraFun();
-  });
+    beginStudy(mode);
+  }
+  var startKanji = document.getElementById("startKanji");
+  var startMath = document.getElementById("startMath");
+  if (startKanji) startKanji.addEventListener("click", function () { arm("kanji"); });
+  if (startMath) startMath.addEventListener("click", function () { arm("math"); });
+  var moreBtn = document.getElementById("moreBtn");
+  if (moreBtn) moreBtn.addEventListener("click", function () { muteBtn.click(); });
 
   playBack.addEventListener("click", showHome);
   backBtn.addEventListener("click", function () {
@@ -1329,7 +1377,8 @@ soonEl.hidden = true;
   homeBtn.addEventListener("click", showHome);
   againBtn.addEventListener("click", function () {
     EmmaSound.playOpening();
-    startCameraFun();
+    sessionStorage.removeItem(ACTIVE_KEY);
+    beginStudy(lastMode);
   });
 
   captureBtn.addEventListener("click", onShutter);
@@ -1393,9 +1442,11 @@ soonEl.hidden = true;
   skipBtn.addEventListener("click", onSkip);
   speakBtn.addEventListener("click", function () {
     if (!active || !active.queue.length) return;
+    var view = hydrate(active.queue[0]);
     EmmaSound.stopSong();
     songBtn.textContent = "九九のうた";
-    EmmaSound.speak(hydrate(active.queue[0]).speak);
+    if (view.kind !== "kanji" && view.a && view.b && !view.op) playFactSong(view);
+    else EmmaSound.speak(view.speak);
   });
   songBtn.addEventListener("click", function () {
     if (!active || !active.queue.length || active.queue[0].kind !== "kuku") return;
