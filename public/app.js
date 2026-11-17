@@ -28,6 +28,9 @@
   var KUKU_BY_ID = {};
   KANJI.forEach(function (k) { KANJI_BY_ID[k.id] = k; });
   KUKU.forEach(function (k) { KUKU_BY_ID[k.id] = k; });
+  if (window.WORKSHEET_ITEMS) {
+    WORKSHEET_ITEMS.forEach(function (k) { KUKU_BY_ID[k.id] = k; });
+  }
 
   var home = document.getElementById("home");
   var play = document.getElementById("play");
@@ -107,18 +110,22 @@
   }
 
   function loadProgress() {
-    var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, remember: [], mute: false, bgmPaused: false };
+    var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, worksheetIndex: 0, remember: [], mute: false, bgmPaused: false };
     try {
       var p = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
       base.sessions = Number(p.sessions) || 0;
       base.kanjiIndex = Number(p.kanjiIndex) || 0;
       base.kukuIndex = Number(p.kukuIndex) || 0;
+      base.worksheetIndex = Number(p.worksheetIndex) || 0;
       base.mute = !!p.mute;
       base.bgmPaused = !!p.bgmPaused;
       if (Array.isArray(p.remember)) base.remember = p.remember.filter(known);
     } catch (e) {}
     base.kanjiIndex = ((base.kanjiIndex % KANJI.length) + KANJI.length) % KANJI.length;
     base.kukuIndex = ((base.kukuIndex % KUKU.length) + KUKU.length) % KUKU.length;
+    if (window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length) {
+      base.worksheetIndex = ((base.worksheetIndex % WORKSHEET_ITEMS.length) + WORKSHEET_ITEMS.length) % WORKSHEET_ITEMS.length;
+    }
     return base;
   }
 
@@ -203,14 +210,18 @@
       });
     }
     var kanjiTake = take(KANJI, progress.kanjiIndex, counts.kanji);
-    var kukuTake = take(KUKU, progress.kukuIndex, counts.kuku);
+    var useSheet = window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length;
+    var mathList = useSheet ? WORKSHEET_ITEMS : KUKU;
+    var mathStart = useSheet ? (progress.worksheetIndex || 0) : progress.kukuIndex;
+    var kukuTake = take(mathList, mathStart, counts.kuku);
     interleave(kanjiTake.items, kukuTake.items).forEach(function (item) {
       pushItem(item, null);
     });
     return {
       queue: queue,
       nextKanji: kanjiTake.next,
-      nextKuku: kukuTake.next,
+      nextKuku: useSheet ? progress.kukuIndex : kukuTake.next,
+      nextWorksheet: useSheet ? kukuTake.next : (progress.worksheetIndex || 0),
       reviewRound: reviewRound
     };
   }
@@ -244,7 +255,9 @@
       a: m.a,
       b: m.b,
       speak: m.speak,
-      answer: String(m.a * m.b)
+      answer: String(m.a * m.b),
+      story: m.story || "",
+      label: m.label || ""
     };
   }
 
@@ -782,8 +795,16 @@ if (copy) {
     mathBoard.hidden = isKanji;
     document.body.dataset.mode = isKanji ? "kanji" : "kuku";
     if (unitMark) {
-      unitMark.hidden = !(isKanji && view.unit);
-      unitMark.textContent = view.unit ? (view.unit + " ばん") : "";
+      if (isKanji && view.unit) {
+        unitMark.hidden = false;
+        unitMark.textContent = view.unit + " ばん";
+      } else if (!isKanji && view.label) {
+        unitMark.hidden = false;
+        unitMark.textContent = view.label;
+      } else {
+        unitMark.hidden = true;
+        unitMark.textContent = "";
+      }
     }
     if (strokeBtn) strokeBtn.hidden = !isKanji;
     if (isKanji) {
@@ -800,9 +821,14 @@ if (copy) {
       if (!view.copy) speakBtn.classList.add("wiggle");
     } else {
       questionEl.hidden = false;
-      questionEl.textContent = view.copy
-        ? (view.a + " × " + view.b + " = " + view.answer)
-        : (view.a + " × " + view.b);
+      questionEl.classList.toggle("story", !!view.story);
+      if (view.story) {
+        questionEl.textContent = view.copy ? (view.story + " " + view.answer) : view.story;
+      } else {
+        questionEl.textContent = view.copy
+          ? (view.a + " × " + view.b + " = " + view.answer)
+          : (view.a + " × " + view.b);
+      }
       readingEl.hidden = true;
       if (view.copy) paintGuide(mathGuide, view.answer);
       EmmaSound.stopBgm();
@@ -830,6 +856,7 @@ if (copy) {
     if (!active) return;
     progress.kanjiIndex = active.nextKanji;
     progress.kukuIndex = active.nextKuku;
+    if (typeof active.nextWorksheet === "number") progress.worksheetIndex = active.nextWorksheet;
     saveProgress();
     sessionStorage.removeItem(ACTIVE_KEY);
     active = null;

@@ -1404,3 +1404,43 @@ var KUKU = [
     "speak": "いんくがく"
   }
 ];
+
+/*
+  Worksheet pages from Emma's 2nd-grade math book.
+  Page 10 is 6のだん: two ずつ word problems, the chant in order,
+  then the same facts in the book's mixed order.
+  Later pages (2–9, 11, and so on) can be appended to MATH_PAGES.
+  She writes the number with her finger. The product is always a×b.
+*/
+var MATH_PAGES = [
+  {
+    "page": 10,
+    "title": "6のだん",
+    "items": [
+      { "kind": "kuku", "id": "p10-w1", "page": 10, "a": 6, "b": 4, "speak": "ろくしにじゅうし", "story": "6こ ずつ 4はこ\nなんこ？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p10-w2", "page": 10, "a": 6, "b": 9, "speak": "ろっくごじゅうし", "story": "6ほん ずつ 9はこ\nなんぼん？", "label": "もんだい" },
+      { "kind": "kuku", "id": "p10-c1", "page": 10, "a": 6, "b": 1, "speak": "ろくいちがろく", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c2", "page": 10, "a": 6, "b": 2, "speak": "ろくにじゅうに", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c3", "page": 10, "a": 6, "b": 3, "speak": "ろくさんじゅうはち", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c4", "page": 10, "a": 6, "b": 4, "speak": "ろくしにじゅうし", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c5", "page": 10, "a": 6, "b": 5, "speak": "ろくごさんじゅう", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c6", "page": 10, "a": 6, "b": 6, "speak": "ろくろくさんじゅうろく", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c7", "page": 10, "a": 6, "b": 7, "speak": "ろくしちよんじゅうに", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c8", "page": 10, "a": 6, "b": 8, "speak": "ろくはちよんじゅうはち", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-c9", "page": 10, "a": 6, "b": 9, "speak": "ろっくごじゅうし", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m2", "page": 10, "a": 6, "b": 2, "speak": "ろくにじゅうに", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m5", "page": 10, "a": 6, "b": 5, "speak": "ろくごさんじゅう", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m8", "page": 10, "a": 6, "b": 8, "speak": "ろくはちよんじゅうはち", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m3", "page": 10, "a": 6, "b": 3, "speak": "ろくさんじゅうはち", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m7", "page": 10, "a": 6, "b": 7, "speak": "ろくしちよんじゅうに", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m9", "page": 10, "a": 6, "b": 9, "speak": "ろっくごじゅうし", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m1", "page": 10, "a": 6, "b": 1, "speak": "ろくいちがろく", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m6", "page": 10, "a": 6, "b": 6, "speak": "ろくろくさんじゅうろく", "label": "6のだん" },
+      { "kind": "kuku", "id": "p10-m4", "page": 10, "a": 6, "b": 4, "speak": "ろくしにじゅうし", "label": "6のだん" }
+    ]
+  }
+];
+var WORKSHEET_ITEMS = [];
+MATH_PAGES.forEach(function (page) {
+  page.items.forEach(function (item) { WORKSHEET_ITEMS.push(item); });
+});

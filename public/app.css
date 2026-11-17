@@ -183,6 +183,7 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
 
 .prompt { font-size: 26px; font-weight: 900; color: #2a2140; margin: 4px 0; }
 .question { font-size: 64px; font-weight: 900; color: #2a2140; margin: 2px 0; line-height: 1.05; }
+.question.story { font-size: 32px; line-height: 1.35; margin: 8px 0; white-space: pre-line; }
 .reading { font-size: 28px; font-weight: 900; color: #542dcc; margin: 0 0 4px; }
 
 .masu {
