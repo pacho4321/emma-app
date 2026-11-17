@@ -2,364 +2,128 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>エマの漢字と九九</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Hiragino Maru Gothic Pro", "Yu Gothic", sans-serif;
-      background: linear-gradient(180deg, #d4a5ff 0%, #ffb3d9 50%, #c9a0ff 100%);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-    body::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px);
-      background-size: 40px 40px;
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .card {
-      background: rgba(255,255,255,0.92);
-      border-radius: 36px;
-      padding: 30px 24px 28px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
-    .bunny {
-      width: 70px;
-      height: 70px;
-      background: #ffd1dc;
-      border-radius: 50%;
-      position: absolute;
-      top: -28px;
-      left: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-      border: 3px solid white;
-    }
-    .banner {
-      background: linear-gradient(90deg, #ff7eb3, #ff65a3);
-      color: white;
-      border-radius: 20px;
-      padding: 8px 20px;
-      font-size: 15px;
-      font-weight: bold;
-      display: inline-block;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 10px rgba(255,101,163,0.3);
-    }
-    .title {
-      font-size: 48px;
-      font-weight: 900;
-      line-height: 1.15;
-      margin: 8px 0 24px;
-    }
-    .title .pink { color: #ff6b9d; }
-    .title .purple { color: #7c5cfc; }
-    .title .yellow { color: #ffb347; }
-    .big-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      width: 100%;
-      border: none;
-      border-radius: 28px;
-      font-size: 22px;
-      font-weight: bold;
-      padding: 18px 20px;
-      margin: 12px 0;
-      cursor: pointer;
-      color: white;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    .big-btn.pink { background: linear-gradient(90deg, #ff6b9d, #ff8fab); }
-    .big-btn.purple { background: linear-gradient(90deg, #7c5cfc, #9b8afb); }
-    .icon {
-      font-size: 28px;
-      background: rgba(255,255,255,0.25);
-      border-radius: 12px;
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .info { font-size: 16px; color: #555; margin-bottom: 8px; }
-    .kanji-big { font-size: 80px; font-weight: bold; color: #2d3436; margin: 8px 0 16px; }
-    .song-big { font-size: 42px; font-weight: 900; color: #7c5cfc; margin: 12px 0 16px; line-height: 1.3; }
-    .write-label { font-size: 20px; font-weight: bold; color: #2d3436; margin-bottom: 10px; }
-    #canvas { border: 4px dashed #ddd; border-radius: 20px; background: #fafafa; touch-action: none; margin: 0 auto 16px; display: block; cursor: crosshair; }
-    .btn { border: none; border-radius: 20px; font-size: 18px; font-weight: bold; padding: 14px 20px; cursor: pointer; margin: 6px; }
-    .ok-btn { background: #00b894; color: white; }
-    .clear-btn { background: #fdcb6e; color: #2d3436; }
-    .back-btn { background: #74b9ff; color: white; }
-    .unknown-btn { background: #6c5ce7; color: white; }
-    .speak-btn { background: #ff7675; color: white; width: 70px; height: 70px; border-radius: 50%; font-size: 32px; display: block; margin: 16px auto 8px; border: none; cursor: pointer; }
-    .next-small { background: #fd79a8; color: white; border: none; border-radius: 20px; font-size: 18px; font-weight: bold; padding: 12px 20px; margin: 8px; cursor: pointer; }
-    .feedback { font-size: 36px; margin: 12px 0 6px; min-height: 48px; font-weight: bold; }
-    .feedback.good { color: #00b894; }
-    .progress { margin-top: 10px; font-size: 16px; color: #636e72; }
-    .done { font-size: 64px; color: #00b894; margin: 40px 0; }
-    .buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .hidden { display: none; }
-  </style>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff4f93'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <div class="card" id="app">
-    <div class="bunny">🐰</div>
-
-    <div id="home">
-      <div class="banner">★ 今日もがんばろう！ ★</div>
-      <div class="title">
-        <span class="pink">エマ</span><br>
-        <span class="purple">の漢字と</span><br>
-        <span class="yellow">九九</span>
-      </div>
-      <button class="big-btn pink" id="startKanji">
-        <span class="icon">📖</span> 漢字を練習
-      </button>
-      <button class="big-btn purple" id="startMath">
-        <span class="icon">🔢</span> 九九を練習
-      </button>
-    </div>
-
-    <div id="practice" class="hidden">
-      <div class="banner" id="modeTitle">漢字を練習</div>
-      <div class="info" id="info"></div>
-      <div class="kanji-big" id="kanji"></div>
-      <div class="song-big" id="song"></div>
-      <div class="write-label" id="question">かいてみよう</div>
-      <canvas id="canvas" width="280" height="180"></canvas>
-      <div class="buttons">
-        <button class="btn clear-btn" id="clearBtn">きれい</button>
-        <button class="btn ok-btn" id="okBtn">OK</button>
-        <button class="btn unknown-btn" id="unknownBtn">わからない</button>
-      </div>
-      <button class="speak-btn" id="speakBtn" title="きく">🔊</button>
-      <button class="next-small" id="nextBtn">つぎ →</button>
-      <div class="feedback" id="feedback"></div>
-      <div class="progress" id="progress"></div>
-      <button class="btn back-btn" id="backBtn" style="margin-top:16px;">もどる</button>
-    </div>
+  <div class="world" aria-hidden="true">
+    <span class="deco d1">🧁</span>
+    <span class="deco d2">🌸</span>
+    <span class="deco d3">⭐</span>
+    <span class="deco d4">🐰</span>
+    <span class="deco d5">✨</span>
+    <span class="deco d6">🧁</span>
   </div>
+  <button type="button" id="muteBtn" class="mute">🔊 おと あり</button>
 
-  <script>
-    const KANJI_LIST = [
-      { kanji: "一", reading: "いち", speak: "いち" },
-      { kanji: "二", reading: "に", speak: "に" },
-      { kanji: "三", reading: "さん", speak: "さん" },
-      { kanji: "四", reading: "し / よん", speak: "し" },
-      { kanji: "五", reading: "ご", speak: "ご" },
-      { kanji: "六", reading: "ろく", speak: "ろく" },
-      { kanji: "七", reading: "なな / しち", speak: "なな" },
-      { kanji: "八", reading: "はち", speak: "はち" },
-      { kanji: "九", reading: "きゅう / く", speak: "きゅう" },
-      { kanji: "十", reading: "じゅう", speak: "じゅう" }
-    ];
+  <main class="card">
+    <section id="home">
+      <div class="cute-row" aria-hidden="true">🧁 ✨ 🐰 ✨ 🌸</div>
+      <div class="banner">★ きょうも がんばろう！ ★</div>
+      <h1 class="title">
+        <span class="pink">エマ</span><br>
+        <span class="purple">の かんじと</span><br>
+        <span class="gold">九九</span>
+      </h1>
+      <div class="pills">
+        <span>📖 かんじ</span>
+        <span>🔢 九九</span>
+      </div>
+      <button type="button" id="startBtn" class="start">はじめる</button>
+      <p class="credit">かきじゅんのデータは KanjiVG（CC BY-SA）</p>
+    </section>
 
-    const MATH_LIST = [
-      { song: "にいちが に", speak: "にいちがに", q: "2 × 1" },
-      { song: "ににんが し", speak: "ににんがし", q: "2 × 2" },
-      { song: "にさんが ろく", speak: "にさんがろく", q: "2 × 3" },
-      { song: "にしが はち", speak: "にしがはち", q: "2 × 4" },
-      { song: "にごが じゅう", speak: "にごがじゅう", q: "2 × 5" },
-      { song: "にろく じゅうに", speak: "にろくじゅうに", q: "2 × 6" },
-      { song: "にしち じゅうし", speak: "にしちじゅうし", q: "2 × 7" },
-      { song: "にはち じゅうろく", speak: "にはちじゅうろく", q: "2 × 8" },
-      { song: "にく じゅうはち", speak: "にくじゅうはち", q: "2 × 9" }
-    ];
+    <section id="play" hidden>
+      <div class="banner">しゃしん あそび</div>
+      <div class="cakes" id="cakes" aria-hidden="true">🧁🧁🧁🧁🧁</div>
+      <div class="timer" id="timer">5:00</div>
+      <div class="soon" id="soon" hidden>もうすぐ べんきょうだよ</div>
+      <p class="note" id="playNote">5ぷん あそぼう</p>
+      <div class="stage" id="stage">
+        <video id="video" playsinline autoplay muted hidden></video>
+        <canvas id="photoCanvas" width="640" height="360"></canvas>
+        <div class="sparkle-layer" id="sparkleLayer" hidden></div>
+        <canvas id="playInk" width="640" height="360"></canvas>
+      </div>
+      <div class="play-actions">
+        <button type="button" id="captureBtn" class="btn pink">しゃしん</button>
+        <label class="btn purple file-btn" for="fileInput">えらぶ</label>
+        <input id="fileInput" type="file" accept="image/*" hidden>
+        <button type="button" id="resetBtn" class="btn amber">もどす</button>
+      </div>
+      <div class="styles" id="styleRow">
+        <button type="button" class="chip picked" data-style="normal">そのまま</button>
+        <button type="button" class="chip" data-style="bright">あかるく</button>
+        <button type="button" class="chip" data-style="toon">アニメっぽい</button>
+        <button type="button" class="chip" data-style="sparkle">キラキラ</button>
+      </div>
+      <div class="stickers" id="toolRow">
+        <button type="button" class="chip picked" data-tool="draw">かく</button>
+        <button type="button" class="chip" data-tool="🧁" aria-label="シール カップケーキ">🧁</button>
+        <button type="button" class="chip" data-tool="⭐" aria-label="シール ほし">⭐</button>
+        <button type="button" class="chip" data-tool="🐰" aria-label="シール うさぎ">🐰</button>
+        <button type="button" class="chip" data-tool="🌸" aria-label="シール はな">🌸</button>
+        <button type="button" class="chip" data-tool="💛" aria-label="シール ハート">💛</button>
+      </div>
+      <div class="play-actions">
+        <button type="button" id="clearPlay" class="btn amber">けす</button>
+        <button type="button" id="savePlay" class="btn blue">ほぞん</button>
+      </div>
+      <button type="button" id="playBack" class="btn blue back">もどる</button>
+    </section>
 
-    let mode = "kanji";
-    let queue = [];
-    let current = null;
-    let correctCount = 0;
-    let total = 0;
+    <section id="study" hidden>
+      <div class="banner" id="modeTitle">かんじ</div>
+      <p class="prompt" id="prompt">きいて、かんじを かこう</p>
+      <p class="unit-mark" id="unitMark" hidden></p>
+      <div class="question" id="question" hidden>2 × 3</div>
+      <p class="reading" id="reading" hidden></p>
+      <div class="masu" id="kanjiBoard">
+        <div class="grid-v"></div>
+        <div class="grid-h"></div>
+        <canvas id="kanjiGuide" width="300" height="300"></canvas>
+        <svg id="strokeSvg" class="stroke-svg" viewBox="0 0 109 109" aria-hidden="true"></svg>
+        <canvas id="kanjiInk" width="300" height="300"></canvas>
+      </div>
+      <div class="math-board" id="mathBoard" hidden>
+        <div class="baseline"></div>
+        <canvas id="mathGuide" width="420" height="240"></canvas>
+        <canvas id="mathInk" width="420" height="240"></canvas>
+      </div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <div class="actions">
+        <button type="button" id="clearBtn" class="btn amber">けす</button>
+        <button type="button" id="doneBtn" class="btn green">できた</button>
+        <button type="button" id="skipBtn" class="btn pink">あとで</button>
+      </div>
+      <div class="listen">
+        <div>
+          <button type="button" id="speakBtn" class="speak" aria-label="きく">🔊</button>
+          <div class="hint-label">きく</div>
+        </div>
+        <button type="button" id="songBtn" class="btn purple" hidden>九九のうた</button>
+        <button type="button" id="bgmBtn" class="btn purple" hidden>おんがく とめる</button>
+        <button type="button" id="strokeBtn" class="btn pink" hidden>かきじゅん</button>
+      </div>
+      <div class="progress" id="progress">あと 8 もん</div>
+      <button type="button" id="backBtn" class="btn blue back">もどる</button>
+    </section>
 
-    const homeEl = document.getElementById("home");
-    const practiceEl = document.getElementById("practice");
-    const modeTitle = document.getElementById("modeTitle");
-    const infoEl = document.getElementById("info");
-    const kanjiEl = document.getElementById("kanji");
-    const songEl = document.getElementById("song");
-    const questionEl = document.getElementById("question");
-    const feedbackEl = document.getElementById("feedback");
-    const progressEl = document.getElementById("progress");
-    const okBtn = document.getElementById("okBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const speakBtn = document.getElementById("speakBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const unknownBtn = document.getElementById("unknownBtn");
-    const backBtn = document.getElementById("backBtn");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    <section id="done" hidden>
+      <div class="cute-row" aria-hidden="true">🧁 ✨ 🌸</div>
+      <div class="done-mark" aria-hidden="true">✨</div>
+      <h2 class="done-title">すごい！じょうず！</h2>
+      <p class="done-lead" id="doneLead">エマ、がんばったね</p>
+      <button type="button" id="againBtn" class="start">もういちど</button>
+      <button type="button" id="homeBtn" class="btn blue back">おわる</button>
+    </section>
+  </main>
 
-    let drawing = false;
-    ctx.lineWidth = 7;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#222";
-
-    function speak(text) {
-      if (!text) return;
-      speechSynthesis.cancel();
-      const uttr = new SpeechSynthesisUtterance(text);
-      uttr.lang = "ja-JP";
-      uttr.rate = 0.85;
-      speechSynthesis.speak(uttr);
-    }
-
-    function getPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches ? e.touches[0] : e;
-      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-    }
-
-    function startDraw(e) {
-      drawing = true;
-      const pos = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-    }
-
-    function draw(e) {
-      if (!drawing) return;
-      e.preventDefault();
-      const pos = getPos(e);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    }
-
-    function stopDraw() { drawing = false; }
-
-    canvas.addEventListener("mousedown", startDraw);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", stopDraw);
-    canvas.addEventListener("mouseleave", stopDraw);
-    canvas.addEventListener("touchstart", startDraw, { passive: false });
-    canvas.addEventListener("touchmove", draw, { passive: false });
-    canvas.addEventListener("touchend", stopDraw);
-
-    function clearCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    clearBtn.onclick = clearCanvas;
-
-    function showGuide() {
-      if (!current || mode !== "kanji") return;
-      clearCanvas();
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = "#888";
-      ctx.font = "bold 100px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(current.kanji, canvas.width / 2, canvas.height / 2);
-      ctx.restore();
-      questionEl.textContent = "なぞってみよう！";
-    }
-
-    unknownBtn.onclick = showGuide;
-
-    function showHome() {
-      homeEl.classList.remove("hidden");
-      practiceEl.classList.add("hidden");
-    }
-
-    function startPractice(newMode) {
-      mode = newMode;
-      queue = mode === "kanji" ? [...KANJI_LIST] : [...MATH_LIST];
-      correctCount = 0;
-      total = queue.length;
-      homeEl.classList.add("hidden");
-      practiceEl.classList.remove("hidden");
-      loadNext();
-    }
-
-    document.getElementById("startKanji").onclick = () => startPractice("kanji");
-    document.getElementById("startMath").onclick = () => startPractice("math");
-    backBtn.onclick = showHome;
-
-    function loadNext() {
-      if (queue.length === 0) {
-        showDone();
-        return;
-      }
-      current = queue.shift();
-      clearCanvas();
-      feedbackEl.textContent = "";
-      feedbackEl.className = "feedback";
-
-      if (mode === "kanji") {
-        kanjiEl.textContent = current.kanji;
-        kanjiEl.style.display = "block";
-        songEl.style.display = "none";
-        infoEl.textContent = `${current.kanji} （${current.reading}）`;
-        questionEl.textContent = "かいてみよう";
-        modeTitle.textContent = "漢字を練習";
-        unknownBtn.style.display = "inline-block";
-      } else {
-        kanjiEl.style.display = "none";
-        songEl.style.display = "block";
-        songEl.textContent = current.song;
-        infoEl.textContent = current.q;
-        questionEl.textContent = "かいてみよう";
-        modeTitle.textContent = "九九を練習";
-        unknownBtn.style.display = "none";
-      }
-      updateProgress();
-    }
-
-    function updateProgress() {
-      progressEl.textContent = `すすんできた：${correctCount} / ${total}`;
-    }
-
-    function showDone() {
-      practiceEl.innerHTML = `
-        <div class="done">✔</div>
-        <div class="title" style="font-size:36px;">すごい！じょうず！</div>
-        <div style="font-size:18px;color:#555;margin:10px 0 20px;">エマ、かんばったね</div>
-        <button class="big-btn pink" onclick="location.reload()">もういちど</button>
-      `;
-    }
-
-    okBtn.onclick = () => {
-      if (!current) return;
-      feedbackEl.textContent = "はなまる！";
-      feedbackEl.className = "feedback good";
-      correctCount++;
-      setTimeout(loadNext, 900);
-    };
-
-    nextBtn.onclick = () => {
-      if (!current) return;
-      queue.push(current);
-      loadNext();
-    };
-
-    speakBtn.onclick = () => {
-      if (!current) return;
-      const text = current.speak || current.reading || current.song;
-      speak(text);
-    };
-
-    showHome();
-  </script>
+  <script src="curriculum.js"></script>
+  <script src="strokes.js"></script>
+  <script src="sound.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
