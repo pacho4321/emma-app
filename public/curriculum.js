@@ -835,6 +835,47 @@ var KANJI_JO = [
 ];
 var KANJI_GE = [];
 var KANJI = KANJI_JO.concat(KANJI_GE);
+// Okurigana for the textbook word of each 2年生の上 kanji.
+// The full word reading is `speak`. Empty means the kanji stands alone.
+var KANJI_OKURI = {
+  "読": "む",
+  "言": "う",
+  "行": "く",
+  "書": "く",
+  "知": "る",
+  "思": "う",
+  "話": "す",
+  "聞": "く",
+  "太": "い",
+  "高": "い",
+  "晴": "れる",
+  "多": "い",
+  "新": "しい",
+  "考": "える",
+  "長": "い",
+  "近": "い",
+  "同": "じ",
+  "会": "う",
+  "切": "る",
+  "広": "い",
+  "食": "べる",
+  "教": "える",
+  "組": "む",
+  "買": "う",
+  "引": "く",
+  "通": "る",
+  "来": "る",
+  "分": "ける",
+  "回": "る",
+  "直": "す",
+  "遠": "い",
+  "当": "たる",
+  "楽": "しい"
+};
+KANJI.forEach(function (k) {
+  k.yomi = k.speak;
+  k.okuri = KANJI_OKURI[k.id] || "";
+});
 var KUKU = [
   {
     "kind": "kuku",
