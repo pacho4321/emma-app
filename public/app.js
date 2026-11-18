@@ -264,17 +264,33 @@
   function makePlan(mode) {
     var sessionLen = 10;
     if (TEST_MODE) sessionLen = Math.min(10, Math.max(1, Number(QUERY.get("n")) || 1));
-    var kanjiMode = mode !== "math";
-    var useSheet = window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length;
-    var list = kanjiMode ? KANJI : (useSheet ? WORKSHEET_ITEMS : KUKU);
-    var start = kanjiMode ? progress.kanjiIndex : (useSheet ? (progress.worksheetIndex || 0) : progress.kukuIndex);
+    var nextKanji = progress.kanjiIndex;
+    var nextKuku = progress.kukuIndex;
+    var nextWorksheet = progress.worksheetIndex || 0;
+    var list;
+    var start;
+    if (mode === "kuku") {
+      list = KUKU.filter(isPureKukuItem);
+      start = nextKuku;
+    } else if (mode === "sansu" || mode === "math") {
+      mode = "sansu";
+      list = (window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length) ? WORKSHEET_ITEMS : [];
+      start = nextWorksheet;
+    } else {
+      mode = "kanji";
+      list = KANJI;
+      start = nextKanji;
+    }
     var taken = take(list, start, sessionLen);
+    if (mode === "kanji") nextKanji = taken.next;
+    if (mode === "kuku") nextKuku = taken.next;
+    if (mode === "sansu") nextWorksheet = taken.next;
     return {
       queue: taken.items.map(freshRef),
-      mode: kanjiMode ? "kanji" : "math",
-      nextKanji: kanjiMode ? taken.next : progress.kanjiIndex,
-      nextKuku: progress.kukuIndex,
-      nextWorksheet: kanjiMode ? (progress.worksheetIndex || 0) : (useSheet ? taken.next : progress.kukuIndex),
+      mode: mode,
+      nextKanji: nextKanji,
+      nextKuku: nextKuku,
+      nextWorksheet: nextWorksheet,
       reviewRound: false
     };
   }
@@ -293,6 +309,8 @@
         kanji: k.kanji,
         speak: k.speak,
         reading: k.speak,
+        yomi: k.yomi || k.speak,
+        okuri: k.okuri || "",
         answer: k.kanji,
         unit: k.unit || 0,
         volume: k.volume || ""
@@ -619,7 +637,217 @@
     return best >= RIVAL_MIN && best > correct + RIVAL_MARGIN;
   }
 
+  function isPureKukuItem(item) {
+    return !!(item && item.kind === "kuku" && item.a && item.b && !item.op && !item.page);
+  }
+
+  function isPureKukuRef(ref) {
+    if (!ref || ref.kind === "kanji") return false;
+    return isPureKukuItem(KUKU_BY_ID[ref.id]);
+  }
+
+  var digitGrids = null;
+  function digitTemplates() {
+    if (digitGrids) return digitGrids;
+    digitGrids = {};
+    function pack(draw) {
+      tmplCanvas.width = 120;
+      tmplCanvas.height = 160;
+      var ctx = tmplCanvas.getContext("2d", { willReadFrequently: true });
+      ctx.clearRect(0, 0, 120, 160);
+      ctx.lineWidth = 14;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#000";
+      ctx.fillStyle = "#000";
+      draw(ctx);
+      var stats = inkStats(tmplCanvas);
+      if (!stats.count) return null;
+      return blurPasses(gridFromStats(stats, true), 4);
+    }
+    function fontGrid(ch) {
+      return pack(function (ctx) {
+        ctx.font = "bold 112px " + GLYPH_FONT;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ch, 60, 82);
+      });
+    }
+    function strokeGrid(draw) {
+      return pack(function (ctx) {
+        ctx.beginPath();
+        draw(ctx);
+        ctx.stroke();
+      });
+    }
+    "0123456789".split("").forEach(function (d) {
+      digitGrids[d] = [fontGrid(d)];
+    });
+    digitGrids["1"].push(
+      strokeGrid(function (ctx) { ctx.moveTo(60, 18); ctx.lineTo(60, 142); }),
+      strokeGrid(function (ctx) { ctx.moveTo(38, 42); ctx.lineTo(62, 16); ctx.lineTo(62, 142); })
+    );
+    digitGrids["4"].push(
+      strokeGrid(function (ctx) { ctx.moveTo(78, 16); ctx.lineTo(28, 86); ctx.lineTo(98, 86); ctx.moveTo(78, 16); ctx.lineTo(78, 146); }),
+      strokeGrid(function (ctx) { ctx.moveTo(28, 18); ctx.lineTo(28, 84); ctx.lineTo(96, 84); ctx.moveTo(72, 18); ctx.lineTo(72, 146); })
+    );
+    digitGrids["7"].push(
+      strokeGrid(function (ctx) { ctx.moveTo(22, 24); ctx.lineTo(100, 24); ctx.lineTo(46, 146); }),
+      strokeGrid(function (ctx) { ctx.moveTo(22, 24); ctx.lineTo(100, 24); ctx.lineTo(46, 146); ctx.moveTo(40, 78); ctx.lineTo(86, 78); })
+    );
+    digitGrids["9"].push(
+      strokeGrid(function (ctx) { ctx.arc(60, 52, 30, 0, Math.PI * 2); ctx.moveTo(84, 58); ctx.lineTo(70, 146); }),
+      strokeGrid(function (ctx) { ctx.arc(58, 50, 28, 0.4, Math.PI * 1.7); ctx.moveTo(80, 62); ctx.quadraticCurveTo(78, 110, 40, 142); })
+    );
+    digitGrids["2"].push(strokeGrid(function (ctx) {
+      ctx.moveTo(28, 42); ctx.quadraticCurveTo(60, 8, 96, 42); ctx.quadraticCurveTo(100, 78, 28, 140); ctx.lineTo(100, 140);
+    }));
+    Object.keys(digitGrids).forEach(function (d) {
+      digitGrids[d] = digitGrids[d].filter(Boolean);
+    });
+    return digitGrids;
+  }
+
+  function sliceStats(stats, x0, x1) {
+    var minX = stats.w, minY = stats.h, maxX = -1, maxY = -1, count = 0;
+    var data = new Uint8ClampedArray(stats.data.length);
+    for (var y = 0; y < stats.h; y++) {
+      for (var x = x0; x <= x1; x++) {
+        var i = (y * stats.w + x) * 4;
+        if (stats.data[i + 3] > 30) {
+          data[i] = stats.data[i];
+          data[i + 1] = stats.data[i + 1];
+          data[i + 2] = stats.data[i + 2];
+          data[i + 3] = stats.data[i + 3];
+          count++;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    return { data: data, w: stats.w, h: stats.h, count: count, minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+  }
+
+  function inkSpans(stats) {
+    var cols = new Float32Array(stats.w);
+    for (var y = stats.minY; y <= stats.maxY; y++) {
+      for (var x = stats.minX; x <= stats.maxX; x++) {
+        if (stats.data[(y * stats.w + x) * 4 + 3] > 30) cols[x]++;
+      }
+    }
+    var spans = [];
+    var start = -1;
+    for (var x2 = stats.minX; x2 <= stats.maxX; x2++) {
+      if (cols[x2] > 0) {
+        if (start < 0) start = x2;
+      } else if (start >= 0) {
+        spans.push([start, x2 - 1]);
+        start = -1;
+      }
+    }
+    if (start >= 0) spans.push([start, stats.maxX]);
+    var merged = [];
+    spans.forEach(function (sp) {
+      if (!merged.length || sp[0] - merged[merged.length - 1][1] > 12) merged.push(sp.slice());
+      else merged[merged.length - 1][1] = sp[1];
+    });
+    return merged.filter(function (sp) { return sp[1] - sp[0] >= 4; });
+  }
+
+  function equalSpans(stats, n) {
+    var spans = [];
+    var width = stats.maxX - stats.minX + 1;
+    for (var i = 0; i < n; i++) {
+      var a = stats.minX + Math.floor(width * i / n);
+      var b = stats.minX + Math.floor(width * (i + 1) / n) - 1;
+      spans.push([a, Math.max(a, b)]);
+    }
+    return spans;
+  }
+
+  function rankDigit(userGrid) {
+    var tmpls = digitTemplates();
+    var ranked = [];
+    "0123456789".split("").forEach(function (d) {
+      var best = 0;
+      tmpls[d].forEach(function (tmpl) {
+        var s = cosine(userGrid, tmpl);
+        if (s > best) best = s;
+      });
+      ranked.push({ d: d, score: best });
+    });
+    ranked.sort(function (a, b) { return b.score - a.score; });
+    return ranked;
+  }
+
+  function readSpans(stats, spans, answer) {
+    var lenient = "";
+    var strict = "";
+    var scores = [];
+    var sure = true;
+    for (var i = 0; i < spans.length; i++) {
+      var part = sliceStats(stats, spans[i][0], spans[i][1]);
+      if (!part.count) return null;
+      var grid = blurPasses(gridFromStats(part, true), 4);
+      var ranked = rankDigit(grid);
+      var wanted = answer.charAt(i);
+      var want = null;
+      for (var j = 0; j < ranked.length; j++) if (ranked[j].d === wanted) want = ranked[j];
+      var best = ranked[0];
+      var chosen = best.d;
+      var chosenScore = best.score;
+      if (want && want.score >= 0.5 && best.score - want.score <= 0.06) {
+        chosen = wanted;
+        chosenScore = want.score;
+        if (best.d !== wanted) sure = false;
+      } else if (best.score < 0.5) {
+        chosen = "?";
+        sure = false;
+      }
+      lenient += chosen;
+      strict += best.score >= 0.5 ? best.d : "?";
+      scores.push(chosenScore);
+    }
+    return { lenient: lenient, strict: strict, scores: scores, sure: sure };
+  }
+
+  function judgeNumber(canvas, answer) {
+    answer = String(answer);
+    var stats = inkStats(canvas);
+    if (stats.count < 40) return { kind: "empty", score: 0, read: "" };
+    var bw = stats.maxX - stats.minX + 1;
+    var bh = stats.maxY - stats.minY + 1;
+    if (bw < 6 && bh < 6) return { kind: "empty", score: 0, read: "" };
+    var tries = [inkSpans(stats)];
+    if (answer.length > 1) tries.push(equalSpans(stats, answer.length));
+    if (answer.length === 1) tries.push([[stats.minX, stats.maxX]]);
+    var accepted = null;
+    var wrong = null;
+    for (var t = 0; t < tries.length; t++) {
+      var spans = tries[t];
+      if (!spans.length) continue;
+      if (spans.length !== answer.length && !(answer.length === 1 && spans.length === 1)) continue;
+      var reading = readSpans(stats, spans, answer);
+      if (!reading) continue;
+      var avg = reading.scores.reduce(function (s, n) { return s + n; }, 0) / reading.scores.length;
+      if (reading.lenient === answer && reading.scores.every(function (n) { return n >= 0.5; })) {
+        if (!accepted || avg > accepted.score) accepted = { score: avg, read: reading.lenient };
+      } else if (reading.strict === answer && reading.scores.every(function (n) { return n >= 0.5; })) {
+        if (!accepted || avg > accepted.score) accepted = { score: avg, read: reading.strict };
+      } else if (/^\d+$/.test(reading.strict) && reading.strict !== answer && avg >= 0.55) {
+        wrong = { score: avg, read: reading.strict };
+      }
+    }
+    if (accepted) {
+      return { kind: accepted.score >= 0.8 ? "hanamaru" : "maru", score: accepted.score, read: accepted.read };
+    }
+    return { kind: "miss", score: wrong ? wrong.score : 0, read: wrong ? wrong.read : "" };
+  }
+
   function judge(canvas, answer, copy, kind) {
+    if (kind !== "kanji" && /^\d+$/.test(String(answer))) return judgeNumber(canvas, String(answer));
     var stats = inkStats(canvas);
     if (stats.count < 220) return { kind: "empty", score: 0 };
     var bw = stats.maxX - stats.minX + 1;
@@ -840,7 +1068,8 @@ if (copy) {
     if (strokeMatch(normUserStroke(last, kanjiInk), exp[hintIndex])) {
       hintIndex++;
       EmmaSound.pop();
-      showHintStroke(ch);
+      var ref = active.queue[0];
+      if (ref.copy || (ref.hint || 0) >= 1) showHintStroke(ch);
     }
   }
 
@@ -938,7 +1167,8 @@ if (copy) {
       hintBadge.hidden = hint === 0;
       hintBadge.textContent = view.copy ? "こたえ" : ("ヒント " + hint);
     }
-    promptEl.textContent = view.copy ? "これを かこう" : (isKanji ? "かんじを かこう" : "こたえを かこう");
+    promptEl.hidden = isKanji && !view.copy;
+    promptEl.textContent = view.copy ? "これを かこう" : (isKanji ? "かこう" : "こたえを かこう");
     kanjiBoard.hidden = !isKanji;
     mathBoard.hidden = isKanji;
     document.body.dataset.mode = isKanji ? "kanji" : "kuku";
@@ -955,12 +1185,19 @@ if (copy) {
       }
     }
     if (strokeBtn) strokeBtn.hidden = !isKanji;
+    var kanjiPrompt = document.getElementById("kanjiPrompt");
+    var kanjiYomi = document.getElementById("kanjiYomi");
+    var kanjiOkuri = document.getElementById("kanjiOkuri");
+    if (kanjiPrompt) kanjiPrompt.hidden = !isKanji;
+    if (isKanji && kanjiYomi && kanjiOkuri) {
+      kanjiYomi.textContent = view.yomi || view.reading || "";
+      kanjiOkuri.textContent = view.okuri ? "（" + view.okuri + "）" : "";
+    }
     if (isKanji) {
       questionEl.hidden = true;
-      readingEl.hidden = !(view.copy || hint >= 2);
-      readingEl.textContent = (view.copy || hint >= 2) ? view.reading : "";
+      readingEl.hidden = true;
       if (view.copy || hint >= 3) paintGuide(kanjiGuide, view.answer);
-      if (view.copy || hint >= 2) playStrokeOrder(view.answer, { fade: !view.copy && hint < 3 });
+      if (view.copy || hint >= 1) playStrokeOrder(view.answer, { fade: !view.copy && hint < 3 });
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       speakBtn.classList.remove("wiggle");
       void speakBtn.offsetWidth;
@@ -990,11 +1227,11 @@ if (copy) {
     var cheer = document.getElementById("cheer");
     var apples = document.getElementById("appleHint");
     var kukuBanner = document.getElementById("kukuBanner");
-    var timesHead = !isKanji && view.a && view.b && !view.op;
+    var timesHead = !!(active && active.mode === "kuku");
     if (kukuBanner) kukuBanner.hidden = !timesHead;
     if (modeTitle) {
       modeTitle.hidden = timesHead;
-      if (!isKanji && !timesHead) modeTitle.textContent = view.label || "さんすう";
+      if (active && (active.mode === "sansu" || active.mode === "math")) modeTitle.textContent = "算数練習";
     }
     if (cheer) cheer.hidden = hint === 0;
     if (apples) {
@@ -1032,9 +1269,9 @@ if (copy) {
 
   function finishSession() {
     if (!active) return;
-    progress.kanjiIndex = active.nextKanji;
-    progress.kukuIndex = active.nextKuku;
-    if (typeof active.nextWorksheet === "number") progress.worksheetIndex = active.nextWorksheet;
+    if (active.mode === "kuku") progress.kukuIndex = active.nextKuku;
+    else if (active.mode === "sansu" || active.mode === "math") progress.worksheetIndex = active.nextWorksheet;
+    else progress.kanjiIndex = active.nextKanji;
     saveProgress();
     sessionStorage.removeItem(activeKey());
     active = null;
@@ -1056,11 +1293,16 @@ if (copy) {
     var shell = document.querySelector(".card");
     if (shell) shell.hidden = false;
     var existing = readActive();
-    if (existing && existing.queue && existing.queue.length && (!mode || existing.mode === mode)) {
-      active = existing;
-      showOnly("study");
-      renderFromActive();
-      return;
+    var sameMode = existing && (existing.mode === mode || (mode === "sansu" && existing.mode === "math"));
+    if (sameMode && existing.queue && existing.queue.length) {
+      if (mode === "kuku") existing.queue = existing.queue.filter(isPureKukuRef);
+      if (existing.queue.length) {
+        existing.mode = mode;
+        active = existing;
+        showOnly("study");
+        renderFromActive();
+        return;
+      }
     }
     active = makePlan(mode || "kanji");
     progress.sessions += 1;
@@ -1110,7 +1352,15 @@ if (copy) {
   }
 
   function showTriangle(ref) {
-    setFeedback("△", "triangle");
+    if (busy) return;
+    busy = true;
+    stopStrokePlay();
+    if (ref.kind === "kanji") {
+      clearInk(kanjiInk);
+      resetKanjiDrawing();
+    } else {
+      clearInk(mathInk);
+    }
     ref.misses = (ref.misses || 0) + 1;
     if (ref.copy) {
       ref.copy = false;
@@ -1124,12 +1374,22 @@ if (copy) {
       ref.hint = ref.misses;
     }
     addRemember(ref);
+    setFeedback("だいじょうぶ！あとで もういちど やろうね", "triangle");
+    [kanjiBoard, mathBoard, document.getElementById("kanjiPrompt"), document.getElementById("equation"), questionEl].forEach(function (el) {
+      if (el) el.classList.add("away");
+    });
     setTimeout(function () {
-      if (!active || active.queue[0] !== ref) return;
+      [kanjiBoard, mathBoard, document.getElementById("kanjiPrompt"), document.getElementById("equation"), questionEl].forEach(function (el) {
+        if (el) el.classList.remove("away");
+      });
+      if (!active || !active.queue.length || active.queue[0] !== ref) {
+        busy = false;
+        return;
+      }
       active.queue.shift();
       active.queue.push(ref);
       renderFromActive();
-    }, 700);
+    }, 1500);
   }
 
   function onMiss(ref, message) {
@@ -1524,7 +1784,9 @@ soonEl.hidden = true;
   var startKanji = document.getElementById("startKanji");
   var startMath = document.getElementById("startMath");
   if (startKanji) startKanji.addEventListener("click", function () { arm("kanji"); });
-  if (startMath) startMath.addEventListener("click", function () { arm("math"); });
+  if (startMath) startMath.addEventListener("click", function () { arm("kuku"); });
+  var startSansu = document.getElementById("startSansu");
+  if (startSansu) startSansu.addEventListener("click", function () { arm("sansu"); });
   var moreBtn = document.getElementById("moreBtn");
   if (moreBtn) moreBtn.addEventListener("click", function () { muteBtn.click(); });
 
@@ -1586,7 +1848,7 @@ soonEl.hidden = true;
     if (active.queue[0].kind === "kanji") {
       stopStrokePlay();
       resetKanjiDrawing();
-      showHintStroke(active.queue[0].id);
+      if (active.queue[0].copy || (active.queue[0].hint || 0) >= 1) showHintStroke(active.queue[0].id);
     } else {
       clearInk(mathInk);
     }
