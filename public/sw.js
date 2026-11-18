@@ -1,4 +1,4 @@
-var CACHE = "emma-shell-20261118e";
+var CACHE = "emma-shell-20261118f";
 var CORE = [
   "/",
   "/index.html",
@@ -7,6 +7,7 @@ var CORE = [
   "/curriculum.js",
   "/sound.js",
   "/strokes.js",
+  "/digit-cnn.bin",
   "/assets/apples.webp",
   "/assets/banner-ganbatte.webp",
   "/assets/banner-home.webp",
