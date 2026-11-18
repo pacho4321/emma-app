@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="p" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="120">
+      <stop offset="0%" stop-color="#7dbeff"/>
+      <stop offset="100%" stop-color="#2f7dff"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#p)" stroke-width="22" stroke-linecap="round">
+    <line x1="60" y1="22" x2="60" y2="98"/>
+    <line x1="22" y1="60" x2="98" y2="60"/>
+  </g>
+</svg>
