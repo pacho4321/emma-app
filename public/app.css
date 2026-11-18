@@ -19,6 +19,20 @@ html, body {
   font-display: swap;
   src: url("assets/fonts/zen-maru-gothic-900-label.ttf") format("truetype");
 }
+@font-face {
+  font-family: "Kosugi Maru";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/fonts/kosugi-maru-kana.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kosugi Maru";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/fonts/kosugi-maru-kana.woff2") format("woff2");
+}
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -929,19 +943,41 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
   #play .note { font-size: 12px; }
   #play .chip, #play .btn, #play .file-btn { min-height: 28px; font-size: 11px; padding: 0 4px; }
 }
-.puri { gap: 4px; color: #5a3d78; }
+.puri {
+  position: relative;
+  gap: 4px;
+  color: #6a4a78;
+  font-family: "Kosugi Maru", "Zen Maru Gothic", sans-serif;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.7), transparent 18%),
+    radial-gradient(circle at 92% 20%, rgba(255, 214, 234, 0.8), transparent 16%),
+    linear-gradient(180deg, #f6d4fb 0%, #ffe7f6 42%, #f4e4ff 100%);
+}
+.puri-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; opacity: 0.9; z-index: 0; }
+.puri > :not(.puri-bg) { position: relative; z-index: 1; }
 .puri-top, .puri-foot, .puri-actions, .puri-pen, .puri-colors { flex: 0 0 auto; }
 .puri-top { display: flex; align-items: center; gap: 6px; }
-.puri-back, .puri-gear, .puri-home {
-  width: clamp(32px, 8vmin, 44px);
-  height: clamp(32px, 8vmin, 44px);
+.puri-back, .puri-gear {
+  width: clamp(32px, 8vmin, 46px);
+  height: clamp(32px, 8vmin, 46px);
   border: none;
   border-radius: 999px;
-  background: #ff8ec0;
+  background: linear-gradient(180deg, #ffd0e6, #ff7eb5);
   color: #fff;
   font-weight: 900;
   font-size: 18px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), 0 3px 0 #e23b78;
 }
+.puri-home {
+  width: clamp(40px, 10vmin, 56px);
+  height: clamp(40px, 10vmin, 56px);
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff3a1, #ffc43a);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.8), 0 3px 0 #e0a020;
+  padding: 6px;
+}
+.puri-home img, .puri-print img, .puri-save img, .puri-actions img { width: 22px; height: 22px; object-fit: contain; }
 .puri-brand { font-weight: 900; color: #7a4fe0; font-size: clamp(14px, 3.4vmin, 20px); }
 .puri-count {
   margin-left: auto;
@@ -969,16 +1005,25 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
 .puri-col button {
   flex: 1 1 0;
   min-height: 0;
-  border: none;
-  border-radius: 12px;
+  border: 2px solid #fff;
+  border-radius: 14px;
   background: #fff;
   color: #7a4fe0;
   font-size: clamp(8px, 2vmin, 11px);
-  font-weight: 900;
+  font-weight: 700;
   padding: 2px;
-  line-height: 1.1;
+  line-height: 1.05;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), 0 2px 0 rgba(226, 59, 120, 0.15);
 }
-.puri-col button span { display: block; font-size: clamp(12px, 3vmin, 18px); }
+.puri-col button img { width: clamp(16px, 4.5vmin, 28px); height: clamp(16px, 4.5vmin, 28px); object-fit: contain; display: block; margin: 0 auto; }
+.puri-col button span { display: block; }
+.puri-col button.tile-heart { background: linear-gradient(180deg, #ffe4f2, #ff8ec0); color: #e2186a; }
+.puri-col button.tile-star { background: linear-gradient(180deg, #fff8d0, #ffe14a); color: #c56a00; }
+.puri-col button.tile-bow { background: linear-gradient(180deg, #ffd6ea, #ff7eb5); color: #e2186a; }
+.puri-col button.tile-flower { background: linear-gradient(180deg, #e7f8c8, #8ee08a); color: #2f8f4e; }
+.puri-col button.tile-chara { background: linear-gradient(180deg, #fff, #ffd6ea); color: #e2186a; }
+.puri-col button.tile-more { background: linear-gradient(180deg, #f3e4ff, #d7c4f8); color: #7a4fe0; }
+.puri-col button.tile-right { background: linear-gradient(180deg, #f7e9ff, #c9a4f6); color: #6a3ec4; }
 .puri-stage {
   position: relative;
   min-width: 0;
@@ -1033,27 +1078,50 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
 .puri-pen, .puri-colors, .puri-actions, .puri-foot { display: flex; gap: 4px; justify-content: center; align-items: center; }
 .puri-pen button, .puri-actions button, .puri-print, .puri-save {
   border: none;
-  border-radius: 999px;
-  min-height: clamp(28px, 5dvh, 40px);
-  padding: 0 8px;
-  font-weight: 900;
-  font-size: clamp(10px, 2.4vmin, 14px);
-  background: #fff;
+  border-radius: 16px;
+  min-height: clamp(36px, 6dvh, 52px);
+  padding: 2px 6px;
+  font-weight: 700;
+  font-size: clamp(9px, 2.2vmin, 13px);
+  background: linear-gradient(180deg, #fff, #f6e4ff);
   color: #7a4fe0;
+  box-shadow: inset 0 2px 0 #fff, 0 3px 0 #e7c4f4;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.05;
 }
 .puri-pen button.picked, .puri-actions button.picked { background: #ff4f93; color: #fff; }
 .puri-colors { flex-wrap: nowrap; }
 .swatch {
-  width: clamp(18px, 5vmin, 28px);
-  height: clamp(18px, 5vmin, 28px);
+  width: clamp(18px, 5.2vmin, 32px);
+  height: clamp(18px, 5.2vmin, 32px);
   border-radius: 999px;
   border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #e7c4f4;
+  box-shadow: inset 0 -3px 0 rgba(90, 40, 80, 0.18), inset 0 3px 0 rgba(255,255,255,0.65), 0 1px 0 #e7c4f4;
+  background-image: radial-gradient(circle at 32% 30%, rgba(255,255,255,0.95), rgba(255,255,255,0) 46%);
   padding: 0;
 }
-.swatch.picked { box-shadow: 0 0 0 2px #ff4f93; }
-.puri-print { flex: 1 1 auto; background: linear-gradient(180deg, #ff8ec0, #ff4f93); color: #fff; }
-.puri-save { background: #8d62ef; color: #fff; }
+.swatch.picked { box-shadow: 0 0 0 2px #ff4f93, inset 0 -3px 0 rgba(90, 40, 80, 0.18); }
+.puri-print {
+  flex: 1 1 auto;
+  flex-direction: row;
+  gap: 6px;
+  background: linear-gradient(180deg, #ffb3d4, #ff4f93);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.55), 0 4px 0 #e23b78;
+  font-size: clamp(13px, 3.2vmin, 18px);
+}
+.puri-save {
+  background: linear-gradient(180deg, #d7c4f8, #8d62ef);
+  color: #fff;
+  border-radius: 18px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 3px 0 #6d45c9;
+  min-width: 72px;
+}
 .puri-note { margin: 0; font-size: 11px; font-weight: 800; min-height: 0; }
 .puri-tray, .puri-textform {
   position: absolute;

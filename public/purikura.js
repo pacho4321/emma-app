@@ -6,12 +6,12 @@
 (function () {
   var BASE = "assets/purikura/";
   var CATS = {
-    heart: ["heart", "heart-dot", "heart-gingham", "heart-lace", "heart-wing", "heart-tiny"],
-    star: ["star", "star-wink", "star-small", "spark", "spark-cluster"],
-    ribbon: ["bow", "bow-dot", "bow-gingham", "bow-white"],
-    flower: ["flower", "heart-tiny", "spark"],
-    chara: ["bunny", "bunny-wink", "cat", "cloud", "flower"],
-    more: ["spark-cluster", "heart-wing", "star-wink", "bow-white", "cloud", "bunny"]
+    heart: ["heart", "heart-dot", "heart-gingham", "heart-lace", "heart-wing", "heart-stripe", "heart-small", "heart-bow"],
+    star: ["star", "star-wink", "star-small", "star-bow", "star-heart", "spark", "spark-pink"],
+    ribbon: ["bow", "bow-dot", "bow-gingham", "bow-white", "bow-tiny", "bow-heart"],
+    flower: ["flower", "flower-small", "tulip", "spark-cluster"],
+    chara: ["bunny", "bunny-wink", "cat", "bear", "cloud", "flower-face"],
+    more: ["spark-cluster", "heart-wing", "star-bow", "bow-heart", "bear", "tulip", "bunny-wink", "spark-pink"]
   };
   var TEXTS = [
     ["だいすき〜!", "#ff4f93"],
@@ -89,24 +89,56 @@
 
   function drawCute(ctx, w, h) {
     var sky = ctx.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, "#c9e7ff");
-    sky.addColorStop(0.55, "#ffd6ee");
-    sky.addColorStop(1, "#d7f5b8");
+    sky.addColorStop(0, "#d9ecff");
+    sky.addColorStop(0.45, "#ffe4f6");
+    sky.addColorStop(1, "#e7f8c8");
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    for (var i = 0; i < 18; i++) {
+      ctx.beginPath();
+      ctx.arc((i * 97) % w, (i * 53) % (h * 0.45), 10 + (i % 4) * 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.fillStyle = "#ffe56b";
     ctx.beginPath();
-    ctx.arc(w * 0.78, h * 0.22, Math.min(w, h) * 0.1, 0, Math.PI * 2);
+    ctx.arc(w * 0.78, h * 0.16, Math.min(w, h) * 0.08, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.beginPath();
-    ctx.arc(w * 0.28, h * 0.28, h * 0.08, 0, Math.PI * 2);
-    ctx.arc(w * 0.38, h * 0.26, h * 0.07, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ff8ec0";
-    ctx.beginPath();
-    ctx.arc(w * 0.5, h * 0.62, h * 0.16, 0, Math.PI * 2);
-    ctx.fill();
+    function pal(cx, cy, r, body, ear) {
+      ctx.fillStyle = ear;
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.45, cy - r * 0.95, r * 0.22, r * 0.42, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + r * 0.45, cy - r * 0.95, r * 0.22, r * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+      var g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
+      g.addColorStop(0, "#fff");
+      g.addColorStop(0.35, body);
+      g.addColorStop(1, body);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = r * 0.08;
+      ctx.stroke();
+      ctx.fillStyle = "#5a3d78";
+      ctx.beginPath();
+      ctx.arc(cx - r * 0.28, cy - r * 0.05, r * 0.08, 0, Math.PI * 2);
+      ctx.arc(cx + r * 0.28, cy - r * 0.05, r * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffb3c9";
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.42, cy + r * 0.12, r * 0.12, r * 0.08, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + r * 0.42, cy + r * 0.12, r * 0.12, r * 0.08, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#5a3d78";
+      ctx.lineWidth = r * 0.05;
+      ctx.beginPath();
+      ctx.arc(cx, cy + r * 0.22, r * 0.16, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+    }
+    pal(w * 0.36, h * 0.58, Math.min(w, h) * 0.16, "#fff7fb", "#fff");
+    pal(w * 0.64, h * 0.6, Math.min(w, h) * 0.15, "#f6c7a2", "#f0b48a");
   }
 
   function cute() {
@@ -309,8 +341,14 @@
       ctx.translate(it.x * w, it.y * h);
       ctx.rotate(it.rot || 0);
       if (it.kind === "text") {
-        var size = Math.max(18, it.w * w * 0.45);
-        ctx.font = "900 " + size + "px 'Zen Maru Gothic', sans-serif";
+        var size = Math.max(16, it.h * h * 0.72);
+        ctx.font = "700 " + size + "px 'Kosugi Maru', 'Zen Maru Gothic', sans-serif";
+        var measured = ctx.measureText(it.text).width;
+        var maxW = it.w * w;
+        if (measured > maxW && measured > 0) {
+          size = size * (maxW / measured);
+          ctx.font = "700 " + size + "px 'Kosugi Maru', 'Zen Maru Gothic', sans-serif";
+        }
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.lineWidth = Math.max(4, size * 0.14);
@@ -377,6 +415,17 @@
     drawDeco(ctx, w, h);
     drawGlitter(ctx, w, h, t || 0);
     drawFrame(ctx, w, h);
+    if (frameId === "pink" || frameId === "purple") {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = frameId === "purple" ? "#8d62ef" : "#ff4f93";
+      ctx.font = "700 " + Math.round(h * 0.032) + "px 'Kosugi Maru', sans-serif";
+      ctx.fillText("ぷりくら ♡", w * 0.5, h * 0.875);
+      ctx.font = "700 " + Math.round(h * 0.028) + "px 'Kosugi Maru', sans-serif";
+      ctx.fillText("最高の思い出っ♡", w * 0.5, h * 0.91);
+      ctx.restore();
+    }
   }
 
   function filterCss() {
@@ -424,15 +473,19 @@
     handles.style.top = (box.top - stageRect.top + it.y * box.height - 18) + "px";
   }
 
+  var placeN = 0;
   function addSticker(name) {
+    var spots = [[0.3, 0.7], [0.72, 0.34], [0.62, 0.72], [0.38, 0.4]];
+    var spot = spots[placeN % spots.length];
+    placeN++;
     items.push({
       id: nextId++,
       kind: "sticker",
       src: name,
-      x: 0.5,
-      y: 0.55,
-      w: 0.28,
-      h: 0.28,
+      x: spot[0],
+      y: spot[1],
+      w: 0.2,
+      h: 0.2,
       rot: 0
     });
     selected = items.length - 1;
@@ -450,14 +503,16 @@
       text: text.slice(0, 16),
       color: color || pen.color,
       x: 0.5,
-      y: 0.42,
-      w: 0.7,
-      h: 0.18,
+      y: 0.24,
+      w: 0.46,
+      h: 0.12,
       rot: 0
     });
     selected = items.length - 1;
     mode = "move";
     hideTray();
+    var form = el("puriTextForm");
+    if (form) form.hidden = true;
     redraw();
   }
 
@@ -567,25 +622,25 @@
     var right = el("puriRight");
     if (!left || !right) return;
     var leftItems = [
-      ["heart", "ハート", "♥"],
-      ["star", "スター", "★"],
-      ["ribbon", "リボン", "🎀"],
-      ["flower", "おはな", "✿"],
-      ["chara", "キャラ", "☺"],
-      ["more", "もっと見る", "…"]
+      ["heart", "ハート", "icon-heart.svg", "tile-heart"],
+      ["star", "スター", "icon-star.svg", "tile-star"],
+      ["ribbon", "リボン", "icon-bow.svg", "tile-bow"],
+      ["flower", "おはな", "icon-flower.svg", "tile-flower"],
+      ["chara", "キャラ", "icon-chara.svg", "tile-chara"],
+      ["more", "もっと見る", "icon-more.svg", "tile-more"]
     ];
     left.innerHTML = leftItems.map(function (row) {
-      return "<button type='button' data-cat='" + row[0] + "'><span>" + row[2] + "</span>" + row[1] + "</button>";
+      return "<button type='button' class='" + row[3] + "' data-cat='" + row[0] + "'><img alt='' src='" + BASE + row[2] + "'><span>" + row[1] + "</span></button>";
     }).join("");
     var rightItems = [
-      ["text", "文字", "T"],
-      ["spark", "きらきら", "✦"],
-      ["filter", "フィルター", "◐"],
-      ["deco", "デコ", "❀"],
-      ["frame", "フレーム", "▢"]
+      ["text", "文字", "icon-text.svg"],
+      ["spark", "きらきら", "icon-spark.svg"],
+      ["filter", "フィルター", "icon-filter.svg"],
+      ["deco", "デコ", "icon-deco.svg"],
+      ["frame", "フレーム", "icon-frame.svg"]
     ];
     right.innerHTML = rightItems.map(function (row) {
-      return "<button type='button' data-tool='" + row[0] + "'><span>" + row[2] + "</span>" + row[1] + "</button>";
+      return "<button type='button' class='tile-right' data-tool='" + row[0] + "'><img alt='' src='" + BASE + row[2] + "'><span>" + row[1] + "</span></button>";
     }).join("");
     var colors = el("puriColors");
     if (colors) {
@@ -730,6 +785,9 @@
       redraw();
     });
     window.addEventListener("resize", redraw);
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load("32px 'Kosugi Maru'").then(function () { redraw(); }).catch(function () {});
+    }
   }
 
   function compositeCanvas() {

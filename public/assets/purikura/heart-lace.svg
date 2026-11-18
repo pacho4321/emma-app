@@ -1,2 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><path d="M64 108 C20 74 8 48 22 30 C34 16 52 20 64 36 C76 20 94 16 106 30 C120 48 108 74 64 108Z" fill="#fff" stroke="#fff" stroke-width="4"/><path d="M64 100 C28 72 18 50 30 36 C40 24 54 28 64 42 C74 28 88 24 98 36 C110 50 100 72 64 100Z" fill="none" stroke="#ff4f93" stroke-width="3" stroke-dasharray="3 3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<defs>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="3" stdDeviation="2.4" flood-color="#d46a96" flood-opacity="0.38"/>
+  </filter>
+  <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.9"/>
+    <stop offset="0.42" stop-color="#fff" stop-opacity="0.08"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.14"/>
+  </linearGradient>
+  <radialGradient id="shine" cx="32%" cy="28%" r="38%">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
+    <stop offset="0.55" stop-color="#fff" stop-opacity="0.15"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="pink" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffd0e6"/>
+    <stop offset="0.45" stop-color="#ff5fa2"/>
+    <stop offset="1" stop-color="#e2186a"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff6c4"/>
+    <stop offset="0.5" stop-color="#ffe14a"/>
+    <stop offset="1" stop-color="#f0b429"/>
+  </linearGradient>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#eaf6ff"/>
+    <stop offset="1" stop-color="#7ec8ff"/>
+  </linearGradient>
+  <pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse">
+    <circle cx="4" cy="4" r="2.2" fill="#fff" opacity="0.85"/>
+  </pattern>
+  <pattern id="gingham" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#ffd0e6"/>
+    <rect width="8" height="8" fill="#ff8ec0"/>
+    <rect x="8" y="8" width="8" height="8" fill="#ff8ec0"/>
+  </pattern>
+  <pattern id="stripe" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+    <rect width="10" height="10" fill="#ff8ec0"/>
+    <rect width="5" height="10" fill="#fff" opacity="0.55"/>
+  </pattern>
+</defs>
+<g filter="url(#sh)"><path d="M100 172C36 128 14 92 30 62C44 38 72 40 100 66C128 40 156 38 170 62C186 92 164 128 100 172Z" fill="#fff" stroke="#ff4f93" stroke-width="8"/>
+  <path d="M100 150C52 116 36 90 48 70C58 54 78 58 100 78C122 58 142 54 152 70C164 90 148 116 100 150Z" fill="none" stroke="#ff8ec0" stroke-width="3" stroke-dasharray="2 4"/>
+  <ellipse cx="74" cy="86" rx="12" ry="7" fill="#fff" opacity="0.8"/></g>
+</svg>
