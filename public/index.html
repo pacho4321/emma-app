@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>エマの漢字と九九</title>
   <link rel="stylesheet" href="app.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff4f93'/%3E%3C/svg%3E">
@@ -40,6 +40,7 @@
       <h1 class="d-title"><img src="assets/title.webp" alt="エマの漢字と九九"></h1>
       <button type="button" id="logoutBtn" class="corner leave" aria-label="でる">でる</button>
       <button type="button" id="muteBtn" class="corner gear" aria-label="おと">⚙</button>
+      <button type="button" id="parentBtn" class="corner parent" hidden>おや</button>
       <button type="button" id="moreBtn" class="corner more" aria-label="もっと">···</button>
       <button type="button" id="startKanji" class="art-btn kanji">
         <img src="assets/button-kanji.webp" alt="">
@@ -49,48 +50,55 @@
         <img src="assets/button-kuku.webp" alt="">
       </button>
       <button type="button" id="startSansu" class="sansu-home">算数練習</button>
+      <button type="button" id="startBook" class="book-home">れんしゅうちょう</button>
     </div>
   </section>
 
   <main class="card" hidden>
 
     <section id="play" hidden>
-      <div class="banner">しゃしん あそび</div>
-      <div class="cakes" id="cakes" aria-hidden="true">🧁🧁🧁🧁🧁</div>
-      <div class="timer" id="timer">5:00</div>
-      <div class="soon" id="soon" hidden>もうすぐ べんきょうだよ</div>
-      <p class="note" id="playNote">5ぷん あそぼう</p>
-      <div class="stage" id="stage">
-        <video id="video" playsinline autoplay muted hidden></video>
-        <canvas id="photoCanvas" width="640" height="360"></canvas>
-        <div class="sparkle-layer" id="sparkleLayer" hidden></div>
-        <canvas id="playInk" width="640" height="360"></canvas>
+      <div class="play-head">
+        <div class="banner">しゃしん あそび</div>
+        <div class="cakes" id="cakes" aria-hidden="true">🧁🧁🧁🧁🧁</div>
+        <div class="timer" id="timer">5:00</div>
+        <div class="soon" id="soon" hidden>もうすぐ べんきょうだよ</div>
+        <p class="note" id="playNote">5ぷん あそぼう</p>
       </div>
-      <div class="play-actions">
-        <button type="button" id="captureBtn" class="btn pink">しゃしん</button>
-        <label class="btn purple file-btn" for="fileInput">えらぶ</label>
-        <input id="fileInput" type="file" accept="image/*" hidden>
-        <button type="button" id="resetBtn" class="btn amber">もどす</button>
+      <div class="play-body">
+        <div class="stage" id="stage">
+          <video id="video" playsinline autoplay muted hidden></video>
+          <canvas id="photoCanvas" width="640" height="360"></canvas>
+          <div class="sparkle-layer" id="sparkleLayer" hidden></div>
+          <canvas id="playInk" width="640" height="360"></canvas>
+        </div>
+        <div class="play-controls">
+          <div class="play-actions">
+            <button type="button" id="captureBtn" class="btn pink">しゃしん</button>
+            <label class="btn purple file-btn" for="fileInput">えらぶ</label>
+            <input id="fileInput" type="file" accept="image/*" hidden>
+            <button type="button" id="resetBtn" class="btn amber">もどす</button>
+          </div>
+          <div class="styles" id="styleRow">
+            <button type="button" class="chip picked" data-style="normal">そのまま</button>
+            <button type="button" class="chip" data-style="bright">あかるく</button>
+            <button type="button" class="chip" data-style="toon">アニメっぽい</button>
+            <button type="button" class="chip" data-style="sparkle">キラキラ</button>
+          </div>
+          <div class="stickers" id="toolRow">
+            <button type="button" class="chip picked" data-tool="draw">かく</button>
+            <button type="button" class="chip" data-tool="🧁" aria-label="シール カップケーキ">🧁</button>
+            <button type="button" class="chip" data-tool="⭐" aria-label="シール ほし">⭐</button>
+            <button type="button" class="chip" data-tool="🐰" aria-label="シール うさぎ">🐰</button>
+            <button type="button" class="chip" data-tool="🌸" aria-label="シール はな">🌸</button>
+            <button type="button" class="chip" data-tool="💛" aria-label="シール ハート">💛</button>
+          </div>
+          <div class="play-actions">
+            <button type="button" id="clearPlay" class="btn amber">けす</button>
+            <button type="button" id="savePlay" class="btn blue">ほぞん</button>
+          </div>
+          <button type="button" id="playBack" class="btn blue back">もどる</button>
+        </div>
       </div>
-      <div class="styles" id="styleRow">
-        <button type="button" class="chip picked" data-style="normal">そのまま</button>
-        <button type="button" class="chip" data-style="bright">あかるく</button>
-        <button type="button" class="chip" data-style="toon">アニメっぽい</button>
-        <button type="button" class="chip" data-style="sparkle">キラキラ</button>
-      </div>
-      <div class="stickers" id="toolRow">
-        <button type="button" class="chip picked" data-tool="draw">かく</button>
-        <button type="button" class="chip" data-tool="🧁" aria-label="シール カップケーキ">🧁</button>
-        <button type="button" class="chip" data-tool="⭐" aria-label="シール ほし">⭐</button>
-        <button type="button" class="chip" data-tool="🐰" aria-label="シール うさぎ">🐰</button>
-        <button type="button" class="chip" data-tool="🌸" aria-label="シール はな">🌸</button>
-        <button type="button" class="chip" data-tool="💛" aria-label="シール ハート">💛</button>
-      </div>
-      <div class="play-actions">
-        <button type="button" id="clearPlay" class="btn amber">けす</button>
-        <button type="button" id="savePlay" class="btn blue">ほぞん</button>
-      </div>
-      <button type="button" id="playBack" class="btn blue back">もどる</button>
     </section>
 
     <section id="study" hidden>
@@ -101,48 +109,56 @@
       </div>
       <img class="cheer" id="cheer" src="assets/banner-ganbatte.webp" alt="がんばってね！" hidden>
       <p class="hint-badge" id="hintBadge" hidden>ヒント 1</p>
-      <p class="prompt" id="prompt">きいて、かんじを かこう</p>
-      <p class="unit-mark" id="unitMark" hidden></p>
-      <div class="question" id="question" hidden>2 × 3</div>
-      <div class="equation" id="equation" hidden></div>
-      <img class="apple-hint" id="appleHint" src="assets/apples.webp" alt="" hidden>
-      <p class="reading" id="reading" hidden></p>
-      <div class="kanji-prompt" id="kanjiPrompt" hidden>
-        <p class="kanji-yomi" id="kanjiYomi"></p>
-        <p class="kanji-slot"><span class="kanji-blank" aria-hidden="true"></span><span id="kanjiOkuri"></span></p>
-      </div>
-      <div class="masu" id="kanjiBoard">
-        <div class="grid-v"></div>
-        <div class="grid-h"></div>
-        <canvas id="kanjiGuide" width="300" height="300"></canvas>
-        <svg id="strokeSvg" class="stroke-svg" viewBox="0 0 109 109" aria-hidden="true"></svg>
-        <canvas id="kanjiInk" width="300" height="300"></canvas>
-      </div>
-      <div class="math-board" id="mathBoard" hidden>
-        <div class="baseline"></div>
-        <canvas id="mathGuide" width="420" height="240"></canvas>
-        <canvas id="mathInk" width="420" height="240"></canvas>
-      </div>
-      <div class="praise-stars" id="praiseStars" hidden>
-        <img src="assets/star-yellow.webp" alt="">
-        <img src="assets/star-pink.webp" alt="">
-        <img src="assets/star-blue.webp" alt="">
-      </div>
-      <div class="feedback" id="feedback" aria-live="polite"></div>
-      <div class="actions">
-        <button type="button" id="clearBtn" class="btn amber">けす</button>
-        <button type="button" id="doneBtn" class="btn green">OK</button>
-        <button type="button" id="skipBtn" class="btn pink">スキップ</button>
-      </div>
-      <div class="listen">
-        <div>
-          <button type="button" id="speakBtn" class="speak" aria-label="おと"><img src="assets/speaker.webp" alt=""></button>
-          <div class="hint-label" id="listenLabel">おと</div>
+      <div class="study-main">
+        <div class="study-read">
+          <p class="prompt" id="prompt">きいて、かんじを かこう</p>
+          <p class="unit-mark" id="unitMark" hidden></p>
+          <div class="question" id="question" hidden>2 × 3</div>
+          <div class="equation" id="equation" hidden></div>
+          <img class="apple-hint" id="appleHint" src="assets/apples.webp" alt="" hidden>
+          <p class="reading" id="reading" hidden></p>
+          <div class="kanji-prompt" id="kanjiPrompt" hidden>
+            <p class="kanji-yomi" id="kanjiYomi"></p>
+            <p class="kanji-slot"><span class="kanji-blank" aria-hidden="true"></span><span id="kanjiOkuri"></span></p>
+          </div>
         </div>
-        <button type="button" id="strokeBtn" class="btn pink" hidden>かきじゅん</button>
+        <div class="board-slot">
+          <div class="masu" id="kanjiBoard">
+            <div class="grid-v"></div>
+            <div class="grid-h"></div>
+            <canvas id="kanjiGuide" width="300" height="300"></canvas>
+            <svg id="strokeSvg" class="stroke-svg" viewBox="0 0 109 109" aria-hidden="true"></svg>
+            <canvas id="kanjiInk" width="300" height="300"></canvas>
+          </div>
+          <div class="math-board" id="mathBoard" hidden>
+            <div class="baseline"></div>
+            <canvas id="mathGuide" width="420" height="240"></canvas>
+            <canvas id="mathInk" width="420" height="240"></canvas>
+          </div>
+        </div>
+        <div class="study-controls">
+          <div class="praise-stars" id="praiseStars" hidden>
+            <img src="assets/star-yellow.webp" alt="">
+            <img src="assets/star-pink.webp" alt="">
+            <img src="assets/star-blue.webp" alt="">
+          </div>
+          <div class="feedback" id="feedback" aria-live="polite"></div>
+          <div class="actions">
+            <button type="button" id="clearBtn" class="btn amber">けす</button>
+            <button type="button" id="doneBtn" class="btn green">OK</button>
+            <button type="button" id="skipBtn" class="btn pink">スキップ</button>
+          </div>
+          <div class="listen">
+            <div class="listen-sound">
+              <button type="button" id="speakBtn" class="speak" aria-label="おと"><img src="assets/speaker.webp" alt=""></button>
+              <div class="hint-label" id="listenLabel">おと</div>
+            </div>
+            <button type="button" id="strokeBtn" class="btn pink" hidden>かきじゅん</button>
+          </div>
+          <div class="progress" id="progress">あと 8 もん</div>
+          <button type="button" id="backBtn" class="btn blue back">もどる</button>
+        </div>
       </div>
-      <div class="progress" id="progress">あと 8 もん</div>
-      <button type="button" id="backBtn" class="btn blue back">もどる</button>
       <p class="credit">かきじゅんのデータは KanjiVG（CC BY-SA）</p>
     </section>
 
@@ -155,8 +171,36 @@
       <div class="done-mark" aria-hidden="true">✨</div>
       <h2 class="done-title">すごい！じょうず！</h2>
       <p class="done-lead" id="doneLead">エマ、がんばったね</p>
-      <button type="button" id="againBtn" class="start">もういちど</button>
+      <button type="button" id="photoBtn" class="start">しゃしん あそび</button>
+      <button type="button" id="bookBtn" class="btn pink">れんしゅうちょう</button>
+      <button type="button" id="againBtn" class="start again">もういちど</button>
       <button type="button" id="homeBtn" class="btn blue back">おわる</button>
+    </section>
+
+    <section id="book" hidden>
+      <div class="study-head">
+        <img class="mini-bunny" src="assets/bunny.webp" alt="">
+        <div class="banner">漢字練習帳</div>
+      </div>
+      <div class="book-tabs">
+        <button type="button" id="bookTabKanji" class="chip picked">かんじ</button>
+        <button type="button" id="bookTabMath" class="chip">九九・算数</button>
+      </div>
+      <p class="book-count" id="bookCount">かいた かんじ 0 / 103</p>
+      <div class="book-bar" aria-hidden="true"><div id="bookBarFill"></div></div>
+      <div class="book-grid" id="bookGrid"></div>
+      <button type="button" id="bookHome" class="btn blue back">おわる</button>
+    </section>
+
+    <section id="parent" hidden>
+      <div class="banner">おや</div>
+      <p class="parent-lead">あたらしい こ</p>
+      <input id="parentName" class="parent-input" maxlength="12" placeholder="なまえ" autocomplete="off">
+      <input id="parentCode" class="parent-input" inputmode="numeric" maxlength="6" placeholder="6けた" autocomplete="off">
+      <button type="button" id="parentAdd" class="btn green">ついか</button>
+      <p class="parent-msg" id="parentMsg" aria-live="polite"></p>
+      <div class="parent-list" id="parentList"></div>
+      <button type="button" id="parentBack" class="btn blue back">もどる</button>
     </section>
   </main>
 

@@ -79,6 +79,8 @@
   var hintIndex = 0;
   var strokeToken = 0;
   var strokePlaying = false;
+  var strokeGuideOn = false;
+  var guideAnim = 0;
   var strokeSamples = {};
   var SVGNS = "http://www.w3.org/2000/svg";
   var progressEl = document.getElementById("progress");
@@ -112,21 +114,87 @@
     return false;
   }
 
-  function who() {
+  var USERS_KEY = "emma-users-v1";
+  var BOOK_CAP = 10;
+
+  function readUsers() {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch (e) { list = []; }
+    if (!Array.isArray(list)) list = [];
+    var out = [];
+    var seen = {};
+    list.forEach(function (u) {
+      if (!u || typeof u.id !== "string" || !/^[0-9a-f]{64}$/.test(u.id)) return;
+      if (seen[u.id]) return;
+      seen[u.id] = true;
+      out.push({ id: u.id, name: String(u.name || "なまえ").slice(0, 12), builtin: u.builtin || "" });
+    });
+    if (!seen[GATE_HASH.emma]) out.unshift({ id: GATE_HASH.emma, name: "エマ", builtin: "main" });
+    if (!seen[GATE_HASH.guest]) out.push({ id: GATE_HASH.guest, name: "ゲスト", builtin: "guest" });
+    out.sort(function (a, b) {
+      var rank = function (u) { return u.builtin === "main" ? 0 : (u.builtin === "guest" ? 1 : 2); };
+      return rank(a) - rank(b);
+    });
+    return out;
+  }
+
+  function saveUsers(list) {
     try {
-      var w = localStorage.getItem(GATE_KEY);
-      return w === "guest" || w === "emma" ? w : "";
-    } catch (e) {
-      return "";
-    }
+      localStorage.setItem(USERS_KEY, JSON.stringify(list.map(function (u) {
+        return { id: u.id, name: String(u.name || "").slice(0, 12), builtin: u.builtin || "" };
+      })));
+    } catch (e) {}
+  }
+
+  function ensureUsers() {
+    saveUsers(readUsers());
+  }
+
+  function userById(id) {
+    var users = readUsers();
+    for (var i = 0; i < users.length; i++) if (users[i].id === id) return users[i];
+    return null;
+  }
+
+  function profileId() {
+    var w = "";
+    try { w = localStorage.getItem(GATE_KEY) || ""; } catch (e) { w = ""; }
+    if (w === "emma") return GATE_HASH.emma;
+    if (w === "guest") return GATE_HASH.guest;
+    if (!/^[0-9a-f]{64}$/.test(w)) return "";
+    if (userById(w)) return w;
+    return "";
+  }
+
+  function isMainProfile() {
+    return profileId() === GATE_HASH.emma;
   }
 
   function progressKey() {
-    return who() === "guest" ? "emma-progress-guest-v1" : "emma-progress-v1";
+    var id = profileId();
+    return id ? ("emma-progress-" + id) : "emma-progress-none";
   }
 
   function activeKey() {
-    return who() === "guest" ? "emma-active-guest-v1" : "emma-active-v1";
+    var id = profileId();
+    return id ? ("emma-active-" + id) : "emma-active-none";
+  }
+
+  function bookKey() {
+    var id = profileId();
+    return id ? ("emma-book-" + id) : "emma-book-none";
+  }
+
+  function legacyProgressKey(id) {
+    if (id === GATE_HASH.emma) return "emma-progress-v1";
+    if (id === GATE_HASH.guest) return "emma-progress-guest-v1";
+    return "";
+  }
+
+  function legacyActiveKey(id) {
+    if (id === GATE_HASH.emma) return "emma-active-v1";
+    if (id === GATE_HASH.guest) return "emma-active-guest-v1";
+    return "";
   }
 
   function sha256hex(ascii) {
@@ -177,7 +245,9 @@
   function loadProgress() {
     var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, worksheetIndex: 0, remember: [], mute: false, bgmPaused: true };
     try {
-      var p = JSON.parse(localStorage.getItem(progressKey()) || "{}");
+      var raw = localStorage.getItem(progressKey());
+      if (!raw) raw = localStorage.getItem(legacyProgressKey(profileId())) || "";
+      var p = JSON.parse(raw || "{}");
       base.sessions = Number(p.sessions) || 0;
       base.kanjiIndex = Number(p.kanjiIndex) || 0;
       base.kukuIndex = Number(p.kukuIndex) || 0;
@@ -202,7 +272,9 @@
 
   function readActive() {
     try {
-      var raw = JSON.parse(sessionStorage.getItem(activeKey()) || "null");
+      var text = sessionStorage.getItem(activeKey());
+      if (!text) text = sessionStorage.getItem(legacyActiveKey(profileId())) || "";
+      var raw = JSON.parse(text || "null");
       if (!raw || !Array.isArray(raw.queue)) return null;
       raw.queue = raw.queue.filter(known);
       return raw;
@@ -216,6 +288,86 @@
     try {
       sessionStorage.setItem(activeKey(), JSON.stringify(active));
     } catch (e) {}
+  }
+
+  function emptyBook() {
+    return { kanji: {}, facts: {} };
+  }
+
+  function loadBook() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(bookKey()) || "");
+      if (!raw || typeof raw !== "object") return emptyBook();
+      if (!raw.kanji || typeof raw.kanji !== "object") raw.kanji = {};
+      if (!raw.facts || typeof raw.facts !== "object") raw.facts = {};
+      return raw;
+    } catch (e) {
+      return emptyBook();
+    }
+  }
+
+  function saveBook(book) {
+    try {
+      localStorage.setItem(bookKey(), JSON.stringify(book));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function shrinkBook(book) {
+    Object.keys(book.kanji).forEach(function (id) {
+      var row = book.kanji[id];
+      if (!Array.isArray(row)) { delete book.kanji[id]; return; }
+      if (row.length > BOOK_CAP) book.kanji[id] = row.slice(row.length - BOOK_CAP);
+      book.kanji[id] = book.kanji[id].map(function (cell) {
+        if (!cell || !cell.img) return null;
+        return { img: cell.img, stamp: cell.stamp === "hanamaru" ? "hanamaru" : "maru" };
+      }).filter(Boolean);
+      if (!book.kanji[id].length) delete book.kanji[id];
+    });
+  }
+
+  function thumbOf(canvas) {
+    var size = 72;
+    var out = document.createElement("canvas");
+    out.width = size;
+    out.height = size;
+    var ctx = out.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(canvas, 0, 0, size, size);
+    return out.toDataURL("image/jpeg", 0.52);
+  }
+
+  function saveKanjiSample(view, canvas, stamp) {
+    if (!view || view.kind !== "kanji" || !profileId()) return;
+    var book = loadBook();
+    if (!book.kanji[view.id]) book.kanji[view.id] = [];
+    book.kanji[view.id].push({ img: thumbOf(canvas), stamp: stamp === "hanamaru" ? "hanamaru" : "maru" });
+    shrinkBook(book);
+    if (!saveBook(book)) {
+      var row = book.kanji[view.id] || [];
+      book.kanji[view.id] = row.slice(-3);
+      Object.keys(book.kanji).forEach(function (id) {
+        if (id !== view.id && book.kanji[id].length > 4) book.kanji[id] = book.kanji[id].slice(-4);
+      });
+      saveBook(book);
+    }
+  }
+
+  function saveFactSample(view, stamp) {
+    if (!view || view.kind === "kanji" || !profileId() || !active) return;
+    var mode = active.mode === "sansu" || active.mode === "math" ? "sansu" : "kuku";
+    var book = loadBook();
+    var key = mode + ":" + view.id;
+    var prev = book.facts[key] || { n: 0, stamp: "maru", mode: mode, id: view.id };
+    prev.n = (Number(prev.n) || 0) + 1;
+    prev.stamp = stamp === "hanamaru" || prev.stamp === "hanamaru" ? "hanamaru" : "maru";
+    prev.mode = mode;
+    prev.id = view.id;
+    book.facts[key] = prev;
+    saveBook(book);
   }
 
   function playSeconds() {
@@ -350,6 +502,12 @@
     saveProgress();
   }
 
+  var rewardTimer = 0;
+  function cancelReward() {
+    clearTimeout(rewardTimer);
+    rewardTimer = 0;
+  }
+
   function showOnly(name) {
     home.hidden = name !== "home";
     var shell = document.querySelector(".card");
@@ -357,7 +515,17 @@
     play.hidden = name !== "play";
     study.hidden = name !== "study";
     done.hidden = name !== "done";
+    var book = document.getElementById("book");
+    var parent = document.getElementById("parent");
+    if (book) book.hidden = name !== "book";
+    if (parent) parent.hidden = name !== "parent";
     document.body.dataset.screen = name;
+    if (name === "home") fitHome();
+  }
+
+  function updateParentButton() {
+    var btn = document.getElementById("parentBtn");
+    if (btn) btn.hidden = !isMainProfile();
   }
 
   function updateMuteLabel() {
@@ -396,17 +564,23 @@
 
   function fitHome() {
     var stage = document.getElementById("skyStage");
-    if (!stage) return;
-    var s = Math.min(window.innerWidth / 784, window.innerHeight / 1168);
+    var frame = document.getElementById("home");
+    if (!stage || !frame) return;
+    var w = frame.clientWidth || window.innerWidth;
+    var h = frame.clientHeight || window.innerHeight;
+    if (!w || !h) return;
+    var s = Math.min(w / 784, h / 1168);
     stage.style.transform = "scale(" + s + ")";
   }
 
   function showHome() {
+    cancelReward();
     stopPlayTimer();
     stopCamera();
     EmmaSound.stopSong();
     kanjiMusicOff();
     showOnly("home");
+    updateParentButton();
     fitHome();
   }
 
@@ -426,9 +600,35 @@
   function bindDraw(canvas, lineWidth, allowSticker, hooks) {
     var drawing = false;
     var pts = null;
+    var activePointer = null;
+    canvas.style.touchAction = "none";
+    var box = canvas.closest(".masu, .math-board, .stage") || canvas.parentElement;
+    if (box && !box.dataset.touchLocked) {
+      box.dataset.touchLocked = "1";
+      box.style.touchAction = "none";
+      ["touchstart", "touchmove", "touchend", "gesturestart", "gesturechange"].forEach(function (type) {
+        box.addEventListener(type, function (e) {
+          if (e.cancelable) e.preventDefault();
+        }, { passive: false });
+      });
+    }
+    document.addEventListener("touchmove", function (e) {
+      if (!drawing || !e.cancelable) return;
+      e.preventDefault();
+    }, { passive: false });
+
+    function finish(e) {
+      if (e && activePointer != null && e.pointerId != null && e.pointerId !== activePointer) return;
+      if (drawing && pts && pts.length > 1 && hooks && hooks.onStroke) hooks.onStroke(pts);
+      drawing = false;
+      pts = null;
+      activePointer = null;
+      document.documentElement.classList.remove("drawing");
+    }
+
     canvas.addEventListener("pointerdown", function (e) {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       if (allowSticker && tool !== "draw") {
         var spot = pos(canvas, e);
         var sctx = canvas.getContext("2d");
@@ -440,8 +640,10 @@
         return;
       }
       if (hooks && hooks.onStart) hooks.onStart();
-      canvas.setPointerCapture(e.pointerId);
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       drawing = true;
+      activePointer = e.pointerId;
+      document.documentElement.classList.add("drawing");
       pts = [];
       var ctx = canvas.getContext("2d");
       ctx.lineWidth = lineWidth;
@@ -456,20 +658,15 @@
       ctx.stroke();
     }, { passive: false });
     canvas.addEventListener("pointermove", function (e) {
-      if (!drawing) return;
-      e.preventDefault();
+      if (!drawing || e.pointerId !== activePointer) return;
+      if (e.cancelable) e.preventDefault();
       var p = pos(canvas, e);
       if (pts) pts.push(p);
       canvas.getContext("2d").lineTo(p.x, p.y);
       canvas.getContext("2d").stroke();
     }, { passive: false });
-    function end() {
-      if (drawing && pts && pts.length > 1 && hooks && hooks.onStroke) hooks.onStroke(pts);
-      drawing = false;
-      pts = null;
-    }
-    canvas.addEventListener("pointerup", end);
-    canvas.addEventListener("pointercancel", end);
+    canvas.addEventListener("pointerup", finish);
+    canvas.addEventListener("pointercancel", finish);
   }
 
   function inkStats(canvas) {
@@ -914,24 +1111,53 @@ if (copy) {
     return out;
   }
 
+  function stopGuideAnim() {
+    guideAnim++;
+  }
+
   function stopStrokePlay() {
     strokeToken++;
+    stopGuideAnim();
     strokePlaying = false;
     if (!strokeSvg) return;
     strokeSvg.innerHTML = "";
     strokeSvg.style.opacity = "1";
   }
 
+  function guideWanted(ref) {
+    return !!(ref && ref.kind === "kanji" && (strokeGuideOn || ref.copy || (ref.hint || 0) >= 1));
+  }
+
+  function loopStrokeDraw(path, len) {
+    var token = ++guideAnim;
+    function run() {
+      if (token !== guideAnim) return;
+      path.style.transition = "none";
+      path.style.strokeDasharray = String(len);
+      path.style.strokeDashoffset = String(len);
+      var dur = Math.max(420, Math.min(900, len * 3.4));
+      requestAnimationFrame(function () {
+        if (token !== guideAnim) return;
+        path.style.transition = "stroke-dashoffset " + dur + "ms linear";
+        path.style.strokeDashoffset = "0";
+      });
+      setTimeout(run, dur + 520);
+    }
+    run();
+  }
+
   function showHintStroke(ch) {
     if (strokePlaying) return;
     var paths = strokesFor(ch);
-    if (!strokeSvg || !paths.length || hintIndex >= paths.length) {
-      if (strokeSvg && !strokePlaying) strokeSvg.innerHTML = "";
-      return;
-    }
+    if (!strokeSvg || !paths.length) return;
+    stopGuideAnim();
     strokeSvg.innerHTML = "";
     strokeSvg.style.opacity = "1";
-    addStrokePath(paths[hintIndex], hintIndex, true);
+    var next = Math.max(0, Math.min(hintIndex, paths.length));
+    for (var i = 0; i < next; i++) addStrokePath(paths[i], i, false);
+    if (next >= paths.length) return;
+    var drawn = addStrokePath(paths[next], next, true);
+    loopStrokeDraw(drawn.path, drawn.len);
   }
 
   function addStrokePath(d, index, hint) {
@@ -941,10 +1167,11 @@ if (copy) {
     strokeSvg.appendChild(path);
     var len = 1;
     try { len = path.getTotalLength() || 1; } catch (e) { len = 1; }
-    var p0 = path.getPointAtLength(0);
+    var p0 = path.getPointAtLength(Math.min(6, len * 0.08));
     var label = document.createElementNS(SVGNS, "text");
     label.setAttribute("x", p0.x);
     label.setAttribute("y", p0.y);
+    if (hint) label.setAttribute("class", "current");
     label.textContent = circled(index + 1);
     strokeSvg.appendChild(label);
     return { path: path, len: len };
@@ -954,6 +1181,7 @@ if (copy) {
     opts = opts || {};
     var paths = strokesFor(ch);
     strokeToken++;
+    stopGuideAnim();
     var token = strokeToken;
     strokePlaying = true;
     if (!strokeSvg) { strokePlaying = false; return; }
@@ -965,6 +1193,11 @@ if (copy) {
       if (token !== strokeToken) return;
       if (i >= paths.length) {
         strokePlaying = false;
+        if (opts.restore) {
+          hintIndex = Math.min(kanjiUserStrokes.length, paths.length);
+          showHintStroke(ch);
+          return;
+        }
         if (opts.fade) {
           setTimeout(function () {
             if (token !== strokeToken) return;
@@ -973,7 +1206,10 @@ if (copy) {
               if (token !== strokeToken) return;
               strokeSvg.innerHTML = "";
               strokeSvg.style.opacity = "1";
-              showHintStroke(ch);
+              if (active && active.queue[0] && guideWanted(active.queue[0]) && active.queue[0].id === ch) {
+                hintIndex = Math.min(kanjiUserStrokes.length, paths.length);
+                showHintStroke(ch);
+              }
             }, 280);
           }, 280);
         }
@@ -1059,18 +1295,21 @@ if (copy) {
   }
 
   function noteStrokeMatch() {
+    if (strokePlaying) return;
     if (!active || !active.queue.length || active.queue[0].kind !== "kanji") return;
-    var ch = active.queue[0].id;
+    var ref = active.queue[0];
+    if (!guideWanted(ref)) return;
+    var ch = ref.id;
+    var paths = strokesFor(ch);
+    if (!paths.length) return;
     var exp = expectedStrokes(ch);
-    if (hintIndex >= exp.length) return;
     var last = kanjiUserStrokes[kanjiUserStrokes.length - 1];
-    if (!last) return;
-    if (strokeMatch(normUserStroke(last, kanjiInk), exp[hintIndex])) {
-      hintIndex++;
-      EmmaSound.pop();
-      var ref = active.queue[0];
-      if (ref.copy || (ref.hint || 0) >= 1) showHintStroke(ch);
-    }
+    var matched = !!(last && hintIndex < exp.length && strokeMatch(normUserStroke(last, kanjiInk), exp[hintIndex]));
+    var next = Math.min(kanjiUserStrokes.length, paths.length);
+    if (next === hintIndex) return;
+    hintIndex = next;
+    if (matched) EmmaSound.pop();
+    showHintStroke(ch);
   }
 
   function resetKanjiDrawing() {
@@ -1155,6 +1394,7 @@ if (copy) {
     busy = false;
     EmmaSound.stopSong();
     stopStrokePlay();
+    strokeGuideOn = false;
     resetKanjiDrawing();
     clearInk(mathInk);
     clearInk(kanjiGuide);
@@ -1197,7 +1437,10 @@ if (copy) {
       questionEl.hidden = true;
       readingEl.hidden = true;
       if (view.copy || hint >= 3) paintGuide(kanjiGuide, view.answer);
-      if (view.copy || hint >= 1) playStrokeOrder(view.answer, { fade: !view.copy && hint < 3 });
+      if (view.copy || hint >= 1) {
+        strokeGuideOn = true;
+        showHintStroke(view.answer);
+      }
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       speakBtn.classList.remove("wiggle");
       void speakBtn.offsetWidth;
@@ -1274,12 +1517,19 @@ if (copy) {
     else progress.kanjiIndex = active.nextKanji;
     saveProgress();
     sessionStorage.removeItem(activeKey());
+    try { sessionStorage.removeItem(legacyActiveKey(profileId())); } catch (e) {}
     active = null;
     EmmaSound.stopSong();
     kanjiMusicOff();
     showOnly("done");
     document.getElementById("doneLead").textContent = "エマ、がんばったね";
     EmmaSound.celebrate();
+    cancelReward();
+    rewardTimer = setTimeout(function () {
+      rewardTimer = 0;
+      if (document.body.dataset.screen !== "done") return;
+      startCameraFun();
+    }, 1600);
   }
 
   var lastMode = "kanji";
@@ -1340,6 +1590,8 @@ if (copy) {
     busy = true;
     var great = result.kind === "hanamaru";
     var praise = great ? "はなまる！" : (result.order === "slip" ? "まる！ かきじゅんも みてね" : "まる！");
+    if (view.kind === "kanji") saveKanjiSample(view, canvas, great ? "hanamaru" : "maru");
+    else saveFactSample(view, great ? "hanamaru" : "maru");
     setFeedback(praise, great ? "hanamaru" : "maru");
     EmmaSound.chime(great ? "hanamaru" : "maru");
     if (result.order === "slip" && view.kind === "kanji") playStrokeOrder(view.answer, { fade: true });
@@ -1409,7 +1661,8 @@ if (copy) {
         renderFromActive();
         setFeedback("これを かこう", "retry");
       } else if (ref.kind === "kanji") {
-        playStrokeOrder(ref.id, { fade: true });
+        strokeGuideOn = true;
+        showHintStroke(ref.id);
       }
       busy = false;
       saveActive();
@@ -1790,6 +2043,186 @@ soonEl.hidden = true;
   var moreBtn = document.getElementById("moreBtn");
   if (moreBtn) moreBtn.addEventListener("click", function () { muteBtn.click(); });
 
+  function factLabel(entry) {
+    var item = KUKU_BY_ID[entry.id];
+    if (!item) return entry.id;
+    if (item.prompt) return item.prompt;
+    if (item.op) return item.a + " " + item.op + " " + item.b;
+    if (item.a && item.b) return item.a + " × " + item.b;
+    return entry.id;
+  }
+
+  function renderBook(tab) {
+    var book = loadBook();
+    var kanjiTab = document.getElementById("bookTabKanji");
+    var mathTab = document.getElementById("bookTabMath");
+    var countEl = document.getElementById("bookCount");
+    var fill = document.getElementById("bookBarFill");
+    var grid = document.getElementById("bookGrid");
+    if (!grid) return;
+    var showMath = tab === "math";
+    if (kanjiTab) kanjiTab.classList.toggle("picked", !showMath);
+    if (mathTab) mathTab.classList.toggle("picked", showMath);
+    grid.innerHTML = "";
+    if (!showMath) {
+      var wrote = 0;
+      KANJI.forEach(function (k) {
+        var cells = book.kanji[k.id];
+        if (cells && cells.length) wrote++;
+      });
+      if (countEl) countEl.textContent = "かいた かんじ " + wrote + " / " + KANJI.length;
+      if (fill) fill.style.width = (KANJI.length ? (wrote / KANJI.length * 100) : 0) + "%";
+      var any = false;
+      KANJI.forEach(function (k) {
+        var cells = book.kanji[k.id];
+        if (!cells || !cells.length) return;
+        any = true;
+        var row = document.createElement("div");
+        row.className = "book-row";
+        var meta = document.createElement("div");
+        meta.className = "book-meta";
+        var ch = document.createElement("div");
+        ch.className = "book-char";
+        ch.textContent = k.kanji;
+        var yomi = document.createElement("div");
+        yomi.className = "book-yomi";
+        yomi.textContent = (k.yomi || k.speak || "") + (k.okuri ? "（" + k.okuri + "）" : "");
+        meta.appendChild(ch);
+        meta.appendChild(yomi);
+        var strip = document.createElement("div");
+        strip.className = "book-cells";
+        cells.forEach(function (cell) {
+          var box = document.createElement("div");
+          box.className = "book-cell";
+          var img = document.createElement("img");
+          img.alt = k.kanji;
+          img.src = cell.img;
+          box.appendChild(img);
+          if (cell.stamp === "hanamaru") {
+            var seal = document.createElement("span");
+            seal.className = "book-stamp";
+            seal.textContent = "花";
+            box.appendChild(seal);
+          }
+          strip.appendChild(box);
+        });
+        row.appendChild(meta);
+        row.appendChild(strip);
+        grid.appendChild(row);
+      });
+      if (!any) {
+        var empty = document.createElement("p");
+        empty.className = "book-empty";
+        empty.textContent = "まだ ないよ。かんじを かくと ここに のこるよ";
+        grid.appendChild(empty);
+      }
+      return;
+    }
+    var facts = Object.keys(book.facts).map(function (key) { return book.facts[key]; }).filter(Boolean);
+    var kukuTotal = KUKU.filter(isPureKukuItem).length;
+    var sansuTotal = (window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length) || 0;
+    var kukuN = 0;
+    var sansuN = 0;
+    facts.forEach(function (f) {
+      if (f.mode === "sansu") sansuN++;
+      else kukuN++;
+    });
+    if (countEl) countEl.textContent = "おぼえた 九九 " + kukuN + " / " + kukuTotal + "　算数 " + sansuN + " / " + sansuTotal;
+    if (fill) fill.style.width = ((kukuTotal + sansuTotal) ? ((kukuN + sansuN) / (kukuTotal + sansuTotal) * 100) : 0) + "%";
+    if (!facts.length) {
+      var none = document.createElement("p");
+      none.className = "book-empty";
+      none.textContent = "まだ ないよ";
+      grid.appendChild(none);
+      return;
+    }
+    ["kuku", "sansu"].forEach(function (mode) {
+      var group = facts.filter(function (f) { return (f.mode || "kuku") === mode; });
+      if (!group.length) return;
+      var title = document.createElement("p");
+      title.className = "book-group";
+      title.textContent = mode === "sansu" ? "算数" : "九九";
+      grid.appendChild(title);
+      group.forEach(function (f) {
+        var line = document.createElement("div");
+        line.className = "fact-row";
+        var name = document.createElement("span");
+        name.textContent = factLabel(f);
+        var mark = document.createElement("span");
+        mark.className = "fact-mark" + (f.stamp === "hanamaru" ? " great" : "");
+        mark.textContent = f.stamp === "hanamaru" ? "はなまる" : "まる";
+        line.appendChild(name);
+        line.appendChild(mark);
+        grid.appendChild(line);
+      });
+    });
+  }
+
+  function renderParent() {
+    var listEl = document.getElementById("parentList");
+    var msg = document.getElementById("parentMsg");
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    readUsers().forEach(function (u) {
+      var row = document.createElement("div");
+      row.className = "parent-row";
+      var name = document.createElement("span");
+      name.textContent = u.name + (u.builtin === "main" ? "（メイン）" : (u.builtin === "guest" ? "（ゲスト）" : ""));
+      row.appendChild(name);
+      if (!u.builtin) {
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "btn pink";
+        del.textContent = "けす";
+        del.addEventListener("click", function () {
+          if (del.textContent !== "けす？") {
+            del.textContent = "けす？";
+            return;
+          }
+          var next = readUsers().filter(function (x) { return x.id !== u.id; });
+          saveUsers(next);
+          try { localStorage.removeItem("emma-progress-" + u.id); } catch (e) {}
+          try { localStorage.removeItem("emma-book-" + u.id); } catch (e) {}
+          try { sessionStorage.removeItem("emma-active-" + u.id); } catch (e2) {}
+          if (msg) msg.textContent = "けしたよ";
+          renderParent();
+        });
+        row.appendChild(del);
+      }
+      listEl.appendChild(row);
+    });
+  }
+
+  function addProfileFromForm() {
+    if (!isMainProfile()) return;
+    var nameEl = document.getElementById("parentName");
+    var codeEl = document.getElementById("parentCode");
+    var msg = document.getElementById("parentMsg");
+    var name = nameEl ? String(nameEl.value || "").trim().slice(0, 12) : "";
+    var code = codeEl ? String(codeEl.value || "").replace(/\D/g, "") : "";
+    if (codeEl) codeEl.value = "";
+    if (!name) {
+      if (msg) msg.textContent = "なまえを いれてね";
+      return;
+    }
+    if (!/^\d{6}$/.test(code)) {
+      if (msg) msg.textContent = "6けたの すうじだよ";
+      return;
+    }
+    var id = sha256hex(code);
+    code = "";
+    if (userById(id)) {
+      if (msg) msg.textContent = "その ことばは つかえないよ";
+      return;
+    }
+    var users = readUsers();
+    users.push({ id: id, name: name, builtin: "" });
+    saveUsers(users);
+    if (nameEl) nameEl.value = "";
+    if (msg) msg.textContent = "つくったよ";
+    renderParent();
+  }
+
   playBack.addEventListener("click", showHome);
   backBtn.addEventListener("click", function () {
     saveActive();
@@ -1797,10 +2230,43 @@ soonEl.hidden = true;
   });
   homeBtn.addEventListener("click", showHome);
   againBtn.addEventListener("click", function () {
+    cancelReward();
     EmmaSound.playOpening();
     sessionStorage.removeItem(activeKey());
     beginStudy(lastMode);
   });
+  var photoBtn = document.getElementById("photoBtn");
+  if (photoBtn) photoBtn.addEventListener("click", function () {
+    cancelReward();
+    startCameraFun();
+  });
+  var startBook = document.getElementById("startBook");
+  var bookBtn = document.getElementById("bookBtn");
+  function openBook() {
+    cancelReward();
+    stopPlayTimer();
+    stopCamera();
+    showOnly("book");
+    renderBook("kanji");
+  }
+  if (startBook) startBook.addEventListener("click", openBook);
+  if (bookBtn) bookBtn.addEventListener("click", openBook);
+  var bookHome = document.getElementById("bookHome");
+  if (bookHome) bookHome.addEventListener("click", showHome);
+  var bookTabKanji = document.getElementById("bookTabKanji");
+  var bookTabMath = document.getElementById("bookTabMath");
+  if (bookTabKanji) bookTabKanji.addEventListener("click", function () { renderBook("kanji"); });
+  if (bookTabMath) bookTabMath.addEventListener("click", function () { renderBook("math"); });
+  var parentBtn = document.getElementById("parentBtn");
+  if (parentBtn) parentBtn.addEventListener("click", function () {
+    if (!isMainProfile()) return;
+    showOnly("parent");
+    renderParent();
+  });
+  var parentBack = document.getElementById("parentBack");
+  if (parentBack) parentBack.addEventListener("click", showHome);
+  var parentAdd = document.getElementById("parentAdd");
+  if (parentAdd) parentAdd.addEventListener("click", addProfileFromForm);
 
   captureBtn.addEventListener("click", onShutter);
   resetBtn.addEventListener("click", resetScene);
@@ -1848,7 +2314,7 @@ soonEl.hidden = true;
     if (active.queue[0].kind === "kanji") {
       stopStrokePlay();
       resetKanjiDrawing();
-      if (active.queue[0].copy || (active.queue[0].hint || 0) >= 1) showHintStroke(active.queue[0].id);
+      if (guideWanted(active.queue[0])) showHintStroke(active.queue[0].id);
     } else {
       clearInk(mathInk);
     }
@@ -1856,7 +2322,8 @@ soonEl.hidden = true;
   if (strokeBtn) {
     strokeBtn.addEventListener("click", function () {
       if (!active || !active.queue.length || active.queue[0].kind !== "kanji") return;
-      playStrokeOrder(active.queue[0].id, { fade: !active.queue[0].copy });
+      strokeGuideOn = true;
+      playStrokeOrder(active.queue[0].id, { restore: true });
     });
   }
   doneBtn.addEventListener("click", onDone);
@@ -1913,8 +2380,8 @@ soonEl.hidden = true;
     fitHome();
   }
 
-  function enterApp(role) {
-    try { localStorage.setItem(GATE_KEY, role); } catch (e) {}
+  function enterApp(id) {
+    try { localStorage.setItem(GATE_KEY, id); } catch (e) {}
     if (gateEl) gateEl.hidden = true;
     progress = loadProgress();
     active = null;
@@ -1924,6 +2391,7 @@ soonEl.hidden = true;
   }
 
   function logout() {
+    cancelReward();
     try { localStorage.removeItem(GATE_KEY); } catch (e) {}
     active = null;
     EmmaSound.stopSong();
@@ -1935,10 +2403,9 @@ soonEl.hidden = true;
     if (gateCode.length < 6) return;
     var digest = sha256hex(gateCode);
     gateCode = "";
-    var role = "";
-    if (digest === GATE_HASH.emma) role = "emma";
-    else if (digest === GATE_HASH.guest) role = "guest";
-    if (!role) {
+    ensureUsers();
+    var user = userById(digest);
+    if (!user) {
       renderGate();
       if (gateMsg) gateMsg.textContent = "もういちど";
       if (gateEl) {
@@ -1948,7 +2415,7 @@ soonEl.hidden = true;
       }
       return;
     }
-    enterApp(role);
+    enterApp(user.id);
   }
 
   function pressGate(key) {
@@ -1981,7 +2448,8 @@ soonEl.hidden = true;
   if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
   applySoundFlags();
-  if (who()) {
+  ensureUsers();
+  if (profileId()) {
     if (gateEl) gateEl.hidden = true;
     showHome();
   } else {
