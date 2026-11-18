@@ -76,7 +76,87 @@ body[data-screen="home"] .sky-bits { display: none; }
   font-weight: 900;
   box-shadow: 0 4px 0 #b48ad8;
 }
+.corner.leave {
+  left: auto;
+  right: 16px;
+  top: 96px;
+  bottom: auto;
+  width: auto;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #6a4d88;
+  box-shadow: 0 3px 0 #e7c4f4;
+}
 .corner.gear { right: 86px; width: 58px; }
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 16px 24px;
+  background:
+    radial-gradient(70% 34% at 50% 0%, #c49ae4 0%, rgba(196, 154, 228, 0) 70%),
+    linear-gradient(180deg, #f0c6f3 0%, #f8d2ee 42%, #f7c4e8 100%);
+}
+.gate[hidden] { display: none !important; }
+.gate-bunny { width: 96px; height: auto; }
+.gate-lead {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 900;
+  color: #ff4f93;
+  -webkit-text-stroke: 4px #fff;
+  paint-order: stroke fill;
+}
+.gate-dots {
+  margin: 0;
+  letter-spacing: 8px;
+  font-size: 28px;
+  font-weight: 900;
+  color: #7a4fe0;
+  min-height: 36px;
+}
+.gate-msg { margin: 0; min-height: 24px; font-size: 18px; font-weight: 900; color: #7a4fe0; }
+.gate-pad {
+  width: min(360px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.gate-key {
+  min-height: 72px;
+  border: none;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ff8ec0 0%, #ff4f93 100%);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 #e23b78;
+}
+.gate-key:nth-child(3n) {
+  background: linear-gradient(180deg, #c9a4f6 0%, #8d62ef 100%);
+  box-shadow: 0 5px 0 #6d45c9;
+}
+.gate-key.del { font-size: 22px; }
+.gate-key:active { transform: translateY(3px); }
+@media (max-height: 740px) {
+  .gate-bunny { width: 72px; }
+  .gate-key { min-height: 58px; font-size: 28px; }
+  .gate-lead { font-size: 24px; }
+}
+.gate.shake { animation: gate-shake 0.35s ease; }
+@keyframes gate-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
 .corner.more { right: 16px; width: 62px; letter-spacing: 1px; }
 .art-btn {
   position: absolute;

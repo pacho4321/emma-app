@@ -82,18 +82,21 @@ function refreshBgmLevel() {
     bgmTimer = null;
   }
 
+  function wake() {
+    ensure();
+    if (ctx && ctx.state === "suspended") {
+      try { ctx.resume(); } catch (e) {}
+    }
+  }
+
   function startBgm() {
     wantBgm = true;
-    ensure();
+    wake();
     refreshBgmLevel();
     if (muted || bgmPaused) return;
     if (bgmTimer) return;
-    unlock().then(function () {
-      if (!wantBgm || muted || bgmPaused) return;
-      if (bgmTimer) return;
-      scheduleBgm();
-      refreshBgmLevel();
-    });
+    scheduleBgm();
+    refreshBgmLevel();
   }
 
   function stopBgm() {
@@ -123,12 +126,11 @@ function refreshBgmLevel() {
     var now = Date.now();
     if (now - lastOpening < 1200) return;
     lastOpening = now;
-    unlock().then(function () {
-      if (!ctx || muted) return;
-      var t = ctx.currentTime + 0.02;
-      [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
-        tone(f, t + i * 0.14, 0.32, "triangle", 0.05, sfxBus);
-      });
+    wake();
+    if (!ctx || muted) return;
+    var t = ctx.currentTime + 0.02;
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+      tone(f, t + i * 0.14, 0.32, "triangle", 0.05, sfxBus);
     });
   }
 
@@ -198,6 +200,22 @@ function refreshBgmLevel() {
     });
   }
 
+  function playLine(text) {
+    stopSong();
+    var token = ++songToken;
+    songActive = true;
+    wake();
+    if (ctx && !muted) {
+      var t = ctx.currentTime;
+      tone(523.25, t, 0.2, "triangle", 0.04, sfxBus);
+      tone(659.25, t + 0.14, 0.22, "triangle", 0.032, sfxBus);
+    }
+    speak(text).then(function () {
+      if (token !== songToken) return;
+      songActive = false;
+    });
+  }
+
   function playSong(lines, onDone) {
     stopSong();
     var token = ++songToken;
@@ -249,6 +267,8 @@ function refreshBgmLevel() {
     setBgmPaused: setBgmPaused,
     speak: speak,
     playSong: playSong,
+    playLine: playLine,
+    audioState: function () { return ctx ? ctx.state : "none"; },
     stopSong: stopSong,
     songPlaying: songPlaying,
     chime: chime,
