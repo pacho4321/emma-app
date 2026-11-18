@@ -76,6 +76,7 @@
   var strokeSvg = document.getElementById("strokeSvg");
   var unitMark = document.getElementById("unitMark");
   var kanjiUserStrokes = [];
+  var mathUserStrokes = [];
   var hintIndex = 0;
   var strokeToken = 0;
   var strokePlaying = false;
@@ -1010,7 +1011,530 @@
     return { lenient: lenient, strict: strict, scores: scores, sure: sure };
   }
 
+  var digitNet = null;
+  var lastDigitRead = "—";
+  var digitReady = fetch("digit-cnn.bin").then(function (res) {
+    if (!res.ok) throw new Error("digits");
+    return res.arrayBuffer();
+  }).then(function (buf) {
+    digitNet = parseDigitNet(buf);
+  }).catch(function () {
+    digitNet = null;
+  });
+
+  function f16bits(h) {
+    var sign = (h & 0x8000) ? -1 : 1;
+    var exp = (h >> 10) & 31;
+    var frac = h & 1023;
+    if (exp === 0) return frac ? sign * Math.pow(2, -14) * (frac / 1024) : sign * 0;
+    if (exp === 31) return frac ? NaN : sign * Infinity;
+    return sign * Math.pow(2, exp - 15) * (1 + frac / 1024);
+  }
+
+  function parseDigitNet(buf) {
+    var view = new DataView(buf);
+    var magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+    if (magic !== "EMN1") throw new Error("digits");
+    var n = view.getUint32(8, true);
+    var off = 12;
+    var blobs = [];
+    for (var i = 0; i < n; i++) {
+      var count = view.getUint32(off, true);
+      off += 4;
+      var arr = new Float32Array(count);
+      for (var k = 0; k < count; k++) {
+        arr[k] = f16bits(view.getUint16(off, true));
+        off += 2;
+      }
+      blobs.push(arr);
+    }
+    return { c1w: blobs[0], c1b: blobs[1], c2w: blobs[2], c2b: blobs[3], f1w: blobs[4], f1b: blobs[5], f2w: blobs[6], f2b: blobs[7] };
+  }
+
+  function convRelu(input, w, b, inC, outC, size) {
+    var out = new Float32Array(outC * size * size);
+    for (var oc = 0; oc < outC; oc++) {
+      for (var y = 0; y < size; y++) {
+        for (var x = 0; x < size; x++) {
+          var sum = b[oc];
+          for (var ic = 0; ic < inC; ic++) {
+            for (var ky = 0; ky < 3; ky++) {
+              var iy = y + ky - 1;
+              if (iy < 0 || iy >= size) continue;
+              for (var kx = 0; kx < 3; kx++) {
+                var ix = x + kx - 1;
+                if (ix < 0 || ix >= size) continue;
+                var iv = input[(ic * size + iy) * size + ix];
+                var wv = w[(((oc * inC + ic) * 3 + ky) * 3) + kx];
+                sum += iv * wv;
+              }
+            }
+          }
+          out[(oc * size + y) * size + x] = sum > 0 ? sum : 0;
+        }
+      }
+    }
+    return out;
+  }
+
+  function pool2(input, channels, size) {
+    var n = size >> 1;
+    var out = new Float32Array(channels * n * n);
+    for (var c = 0; c < channels; c++) {
+      for (var y = 0; y < n; y++) {
+        for (var x = 0; x < n; x++) {
+          var m = -1e9;
+          for (var ky = 0; ky < 2; ky++) {
+            for (var kx = 0; kx < 2; kx++) {
+              var v = input[(c * size + y * 2 + ky) * size + (x * 2 + kx)];
+              if (v > m) m = v;
+            }
+          }
+          out[(c * n + y) * n + x] = m;
+        }
+      }
+    }
+    return out;
+  }
+
+  function linear(input, w, b, inN, outN, relu) {
+    var out = new Float32Array(outN);
+    for (var o = 0; o < outN; o++) {
+      var sum = b[o];
+      var row = o * inN;
+      for (var i = 0; i < inN; i++) sum += input[i] * w[row + i];
+      out[o] = relu && sum < 0 ? 0 : sum;
+    }
+    return out;
+  }
+
+  function cnnLogits(img28) {
+    var x = convRelu(img28, digitNet.c1w, digitNet.c1b, 1, 12, 28);
+    x = pool2(x, 12, 28);
+    x = convRelu(x, digitNet.c2w, digitNet.c2b, 12, 24, 14);
+    x = pool2(x, 24, 14);
+    x = linear(x, digitNet.f1w, digitNet.f1b, 1176, 64, true);
+    return linear(x, digitNet.f2w, digitNet.f2b, 64, 10, false);
+  }
+
+  function softmax10(logits) {
+    var m = logits[0];
+    for (var i = 1; i < 10; i++) if (logits[i] > m) m = logits[i];
+    var s = 0;
+    var o = new Float32Array(10);
+    for (var j = 0; j < 10; j++) {
+      o[j] = Math.exp(logits[j] - m);
+      s += o[j];
+    }
+    for (var k = 0; k < 10; k++) o[k] /= s || 1;
+    return o;
+  }
+
+  function resizeArea(src, sw, sh, dw, dh) {
+    var out = new Float32Array(dw * dh);
+    for (var y = 0; y < dh; y++) {
+      var y0 = y * sh / dh;
+      var y1 = (y + 1) * sh / dh;
+      var iy0 = Math.floor(y0);
+      var iy1 = Math.ceil(y1 - 1e-8);
+      for (var x = 0; x < dw; x++) {
+        var x0 = x * sw / dw;
+        var x1 = (x + 1) * sw / dw;
+        var ix0 = Math.floor(x0);
+        var ix1 = Math.ceil(x1 - 1e-8);
+        var acc = 0;
+        var wsum = 0;
+        var yEnd = Math.min(sh, Math.max(iy0 + 1, iy1));
+        var xEnd = Math.min(sw, Math.max(ix0 + 1, ix1));
+        for (var yy = iy0; yy < yEnd; yy++) {
+          var wy = Math.min(y1, yy + 1) - Math.max(y0, yy);
+          if (wy <= 0) continue;
+          for (var xx = ix0; xx < xEnd; xx++) {
+            var wx = Math.min(x1, xx + 1) - Math.max(x0, xx);
+            if (wx <= 0) continue;
+            acc += src[yy * sw + xx] * wy * wx;
+            wsum += wy * wx;
+          }
+        }
+        out[y * dw + x] = wsum ? acc / wsum : 0;
+      }
+    }
+    return out;
+  }
+
+  function dilateGray(src, w, h) {
+    var out = new Float32Array(src.length);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var m = 0;
+        for (var ky = -1; ky <= 1; ky++) {
+          var yy = y + ky;
+          if (yy < 0 || yy >= h) continue;
+          for (var kx = -1; kx <= 1; kx++) {
+            var xx = x + kx;
+            if (xx < 0 || xx >= w) continue;
+            var v = src[yy * w + xx];
+            if (v > m) m = v;
+          }
+        }
+        out[y * w + x] = m;
+      }
+    }
+    return out;
+  }
+
+  function prepDigit(src, sw, sh) {
+    var minX = sw, minY = sh, maxX = -1, maxY = -1;
+    for (var y = 0; y < sh; y++) {
+      for (var x = 0; x < sw; x++) {
+        if (src[y * sw + x] > 0.08) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    var out = new Float32Array(28 * 28);
+    if (maxX < minX) return out;
+    var cw = maxX - minX + 1;
+    var ch = maxY - minY + 1;
+    var crop = new Float32Array(cw * ch);
+    for (var yy = 0; yy < ch; yy++) {
+      for (var xx = 0; xx < cw; xx++) crop[yy * cw + xx] = src[(yy + minY) * sw + (xx + minX)];
+    }
+    crop = dilateGray(crop, cw, ch);
+    var side = Math.max(cw, ch);
+    var square = new Float32Array(side * side);
+    var y0 = Math.floor((side - ch) / 2);
+    var x0 = Math.floor((side - cw) / 2);
+    for (var y2 = 0; y2 < ch; y2++) {
+      for (var x2 = 0; x2 < cw; x2++) square[(y2 + y0) * side + (x2 + x0)] = crop[y2 * cw + x2];
+    }
+    var small = resizeArea(square, side, side, 20, 20);
+    var mass = 1e-6;
+    var cx = 0;
+    var cy = 0;
+    for (var y3 = 0; y3 < 20; y3++) {
+      for (var x3 = 0; x3 < 20; x3++) {
+        var v = small[y3 * 20 + x3];
+        mass += v;
+        cx += x3 * v;
+        cy += y3 * v;
+      }
+    }
+    cx /= mass;
+    cy /= mass;
+    var top = Math.round(14 - cy);
+    var left = Math.round(14 - cx);
+    var ySrc0 = Math.max(0, -top);
+    var xSrc0 = Math.max(0, -left);
+    var yDst0 = Math.max(0, top);
+    var xDst0 = Math.max(0, left);
+    var yCopy = Math.min(20 - ySrc0, 28 - yDst0);
+    var xCopy = Math.min(20 - xSrc0, 28 - xDst0);
+    if (yCopy > 0 && xCopy > 0) {
+      for (var y4 = 0; y4 < yCopy; y4++) {
+        for (var x4 = 0; x4 < xCopy; x4++) {
+          out[(yDst0 + y4) * 28 + (xDst0 + x4)] = small[(ySrc0 + y4) * 20 + (xSrc0 + x4)];
+        }
+      }
+    }
+    for (var i = 0; i < out.length; i++) out[i] = out[i] * 2 - 1;
+    return out;
+  }
+
+  function grayFromCanvas(canvas) {
+    var ctx = canvas.getContext("2d", { willReadFrequently: true });
+    var w = canvas.width;
+    var h = canvas.height;
+    var data = ctx.getImageData(0, 0, w, h).data;
+    var gray = new Float32Array(w * h);
+    var count = 0;
+    var minX = w, minY = h, maxX = -1, maxY = -1;
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var a = data[(y * w + x) * 4 + 3] / 255;
+        if (a > 0.08) {
+          gray[y * w + x] = a;
+          count++;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    return { gray: gray, w: w, h: h, count: count, minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+  }
+
+  function sliceGray(field, x0, x1) {
+    var w = field.w;
+    var h = field.h;
+    var gray = new Float32Array(w * h);
+    var count = 0;
+    var minX = w, minY = h, maxX = -1, maxY = -1;
+    x0 = Math.max(0, x0);
+    x1 = Math.min(w - 1, x1);
+    for (var y = 0; y < h; y++) {
+      for (var x = x0; x <= x1; x++) {
+        var v = field.gray[y * w + x];
+        if (v > 0.08) {
+          gray[y * w + x] = v;
+          count++;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    return { gray: gray, w: w, h: h, count: count, minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+  }
+
+  function classifyField(part) {
+    if (!part.count) return null;
+    var img = prepDigit(part.gray, part.w, part.h);
+    return softmax10(cnnLogits(img));
+  }
+
+  function topIndex(probs) {
+    var best = 0;
+    for (var i = 1; i < 10; i++) if (probs[i] > probs[best]) best = i;
+    return best;
+  }
+
+  function digitOk(probs, expected) {
+    var e = expected.charCodeAt(0) - 48;
+    if (e < 0 || e > 9) return false;
+    var top = 0;
+    var rank = 0;
+    for (var i = 0; i < 10; i++) {
+      if (probs[i] > probs[top]) top = i;
+      if (probs[i] > probs[e]) rank++;
+    }
+    var p = probs[e];
+    return rank < 3 && p >= 0.12 && p >= probs[top] * 0.42;
+  }
+
+  function smoothCols(cols, x0, x1) {
+    var s = new Float32Array(cols.length);
+    for (var x = x0; x <= x1; x++) {
+      var acc = 0;
+      var n = 0;
+      for (var k = -2; k <= 2; k++) {
+        var xx = x + k;
+        if (xx < x0 || xx > x1) continue;
+        acc += cols[xx];
+        n++;
+      }
+      s[x] = acc / n;
+    }
+    return s;
+  }
+
+  function columnMass(field, x0, x1) {
+    var cols = new Float32Array(field.w);
+    var y0 = field.minY;
+    var y1 = field.maxY;
+    for (var y = y0; y <= y1; y++) {
+      for (var x = x0; x <= x1; x++) cols[x] += field.gray[y * field.w + x];
+    }
+    return cols;
+  }
+
+  function valleyCuts(field) {
+    var x0 = field.minX;
+    var x1 = field.maxX;
+    var cols = columnMass(field, x0, x1);
+    var s = smoothCols(cols, x0, x1);
+    var peak = 0;
+    for (var x = x0; x <= x1; x++) if (s[x] > peak) peak = s[x];
+    var cuts = [];
+    var width = x1 - x0 + 1;
+    for (var c = x0 + 2; c <= x1 - 2; c++) {
+      if (s[c] <= s[c - 1] && s[c] <= s[c + 1] && s[c] <= peak * 0.72) {
+        var pos = (c - x0) / width;
+        if (pos > 0.18 && pos < 0.82) cuts.push(c);
+      }
+    }
+    return cuts;
+  }
+
+  function pushSpan(list, spans) {
+    var key = spans.map(function (s) { return s[0] + ":" + s[1]; }).join("|");
+    if (list.keys[key]) return;
+    list.keys[key] = true;
+    list.items.push(spans);
+  }
+
+  function segmentations(field, n, canvas) {
+    var list = { keys: {}, items: [] };
+    var x0 = field.minX;
+    var x1 = field.maxX;
+    if (n === 1) {
+      pushSpan(list, [[x0, x1]]);
+      return list.items;
+    }
+    var width = x1 - x0 + 1;
+    if (n === 2) {
+      var cuts = valleyCuts(field);
+      var step = Math.max(3, Math.floor(width / 14));
+      for (var x = x0 + Math.floor(width * 0.22); x <= x0 + Math.floor(width * 0.78); x += step) cuts.push(x);
+      cuts.push(x0 + Math.floor(width / 2));
+      cuts.forEach(function (c) {
+        if (c <= x0 + 2 || c >= x1 - 2) return;
+        pushSpan(list, [[x0, c], [c + 1, x1]]);
+      });
+    } else {
+      var thirds = [0.33, 0.4, 0.5];
+      var seconds = [0.6, 0.67, 0.75];
+      thirds.forEach(function (a) {
+        seconds.forEach(function (b) {
+          if (b - a < 0.18) return;
+          var c1 = x0 + Math.floor(width * a);
+          var c2 = x0 + Math.floor(width * b);
+          if (c2 <= c1 + 2) return;
+          pushSpan(list, [[x0, c1], [c1 + 1, c2], [c2 + 1, x1]]);
+        });
+      });
+      var valleys = valleyCuts(field);
+      for (var i = 0; i < valleys.length; i++) {
+        for (var j = i + 1; j < valleys.length; j++) {
+          var left = valleys[i];
+          var right = valleys[j];
+          if (right - left < width * 0.15) continue;
+          if (left - x0 < width * 0.12 || x1 - right < width * 0.12) continue;
+          pushSpan(list, [[x0, left], [left + 1, right], [right + 1, x1]]);
+        }
+      }
+    }
+    var strokeSpans = canvas === mathInk ? spansFromStrokes(n) : null;
+    if (strokeSpans) pushSpan(list, strokeSpans);
+    if (!list.items.length) {
+      var eq = [];
+      for (var d = 0; d < n; d++) {
+        var a = x0 + Math.floor(width * d / n);
+        var b = x0 + Math.floor(width * (d + 1) / n) - 1;
+        eq.push([a, Math.max(a, b)]);
+      }
+      pushSpan(list, eq);
+    }
+    return list.items.slice(0, 18);
+  }
+
+  function spansFromStrokes(n) {
+    if (!mathUserStrokes || mathUserStrokes.length < n) return null;
+    var boxes = mathUserStrokes.map(function (pts) {
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      pts.forEach(function (p) {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+      });
+      return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+    }).filter(function (b) { return b.maxX > b.minX || b.maxY > b.minY; });
+    if (boxes.length < n) return null;
+    var parent = boxes.map(function (_, i) { return i; });
+    function find(i) {
+      while (parent[i] !== i) i = parent[i];
+      return i;
+    }
+    function gapLimit(a, b) {
+      var wa = a.maxX - a.minX;
+      var wb = b.maxX - b.minX;
+      return Math.max(10, Math.min(wa, wb) * 0.28);
+    }
+    for (var i = 0; i < boxes.length; i++) {
+      for (var j = i + 1; j < boxes.length; j++) {
+        var a = boxes[i];
+        var b = boxes[j];
+        var gap = Math.max(a.minX, b.minX) - Math.min(a.maxX, b.maxX);
+        var overlapY = Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY);
+        if (gap <= gapLimit(a, b) && overlapY > -8) parent[find(i)] = find(j);
+      }
+    }
+    var groups = {};
+    boxes.forEach(function (b, i) {
+      var r = find(i);
+      if (!groups[r]) groups[r] = { minX: b.minX, maxX: b.maxX };
+      else {
+        groups[r].minX = Math.min(groups[r].minX, b.minX);
+        groups[r].maxX = Math.max(groups[r].maxX, b.maxX);
+      }
+    });
+    var keys = Object.keys(groups);
+    if (keys.length !== n) return null;
+    var spans = keys.map(function (k) { return [Math.floor(groups[k].minX), Math.ceil(groups[k].maxX)]; });
+    spans.sort(function (a, b) { return a[0] - b[0]; });
+    return spans;
+  }
+
+  function setDigitDebug(read, answer, ok) {
+    lastDigitRead = (read || "？") + (ok ? " あってる" : " ちがう") + " / こたえ " + answer;
+    var el = document.getElementById("digitDebug");
+    if (el) el.textContent = "よみ: " + lastDigitRead;
+  }
+
   function judgeNumber(canvas, answer) {
+    answer = String(answer);
+    if (!digitNet) return judgeNumberLegacy(canvas, answer);
+    var field = grayFromCanvas(canvas);
+    if (field.count < 36) return { kind: "empty", score: 0, read: "" };
+    var bw = field.maxX - field.minX + 1;
+    var bh = field.maxY - field.minY + 1;
+    if (bw < 6 && bh < 6) return { kind: "empty", score: 0, read: "" };
+    var segs = segmentations(field, answer.length, canvas);
+    var accepted = null;
+    var bestRead = "";
+    var bestConf = -1;
+    for (var s = 0; s < segs.length; s++) {
+      var spans = segs[s];
+      if (spans.length !== answer.length) continue;
+      var probs = [];
+      var greedy = "";
+      var conf = 0;
+      var good = true;
+      var expectScore = 0;
+      for (var i = 0; i < spans.length; i++) {
+        var part = sliceGray(field, spans[i][0], spans[i][1]);
+        if (part.count < 8) { good = false; break; }
+        var p = classifyField(part);
+        if (!p) { good = false; break; }
+        probs.push(p);
+        var top = topIndex(p);
+        greedy += String(top);
+        conf += p[top];
+        expectScore += p[answer.charCodeAt(i) - 48] || 0;
+        if (!digitOk(p, answer.charAt(i))) good = false;
+      }
+      if (probs.length !== answer.length) continue;
+      conf /= probs.length;
+      if (conf > bestConf) {
+        bestConf = conf;
+        bestRead = greedy;
+      }
+      if (good) {
+        var score = expectScore / answer.length;
+        if (!accepted || score > accepted.score) accepted = { score: score, read: answer };
+      } else if (greedy === answer && conf >= 0.45) {
+        var gscore = conf;
+        if (!accepted || gscore > accepted.score) accepted = { score: gscore, read: answer };
+      }
+    }
+    if (accepted) {
+      setDigitDebug(accepted.read, answer, true);
+      return { kind: accepted.score >= 0.72 ? "hanamaru" : "maru", score: accepted.score, read: accepted.read };
+    }
+    var clearWrong = bestRead && bestRead !== answer && bestConf >= 0.58 && bestRead.length === answer.length;
+    setDigitDebug(bestRead || "？", answer, false);
+    if (clearWrong) return { kind: "miss", score: bestConf, read: bestRead };
+    if (field.count < 70) return { kind: "empty", score: 0, read: bestRead || "" };
+    return { kind: "maru", score: 0.45, read: bestRead || answer };
+  }
+
+  function judgeNumberLegacy(canvas, answer) {
     answer = String(answer);
     var stats = inkStats(canvas);
     if (stats.count < 40) return { kind: "empty", score: 0, read: "" };
@@ -1397,6 +1921,7 @@ if (copy) {
     strokeGuideOn = false;
     resetKanjiDrawing();
     clearInk(mathInk);
+    mathUserStrokes = [];
     clearInk(kanjiGuide);
     clearInk(mathGuide);
     var hintBadge = document.getElementById("hintBadge");
@@ -1612,6 +2137,7 @@ if (copy) {
       resetKanjiDrawing();
     } else {
       clearInk(mathInk);
+      mathUserStrokes = [];
     }
     ref.misses = (ref.misses || 0) + 1;
     if (ref.copy) {
@@ -1654,7 +2180,10 @@ if (copy) {
         return;
       }
       if (ref.kind === "kanji") resetKanjiDrawing();
-      else clearInk(mathInk);
+      else {
+        clearInk(mathInk);
+        mathUserStrokes = [];
+      }
       if (ref.misses >= 3 && !ref.copy) {
         ref.copy = true;
         addRemember(ref);
@@ -2019,7 +2548,9 @@ soonEl.hidden = true;
       noteStrokeMatch();
     }
   });
-  bindDraw(mathInk, 20, false);
+  bindDraw(mathInk, 20, false, {
+    onStroke: function (pts) { mathUserStrokes.push(pts); }
+  });
   bindDraw(playInk, 16, true);
 
   muteBtn.addEventListener("click", function () {
@@ -2317,6 +2848,7 @@ soonEl.hidden = true;
       if (guideWanted(active.queue[0])) showHintStroke(active.queue[0].id);
     } else {
       clearInk(mathInk);
+      mathUserStrokes = [];
     }
   });
   if (strokeBtn) {
@@ -2523,7 +3055,17 @@ soonEl.hidden = true;
       orderOf: function () {
         var view = hydrate(active.queue[0]);
         return classifyOrder(kanjiUserStrokes, view.answer, kanjiInk);
-      }
+      },
+      digitsReady: digitReady,
+      digitLogits: function (flat) {
+        if (!digitNet) return null;
+        return Array.prototype.slice.call(cnnLogits(new Float32Array(flat)));
+      },
+      prepCanvas: function (canvas) {
+        var field = grayFromCanvas(canvas);
+        return Array.prototype.slice.call(prepDigit(field.gray, field.w, field.h));
+      },
+      lastRead: function () { return lastDigitRead; }
     };
   }
 })();
