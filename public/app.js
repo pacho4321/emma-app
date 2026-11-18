@@ -67,8 +67,6 @@
   var doneBtn = document.getElementById("doneBtn");
   var skipBtn = document.getElementById("skipBtn");
   var speakBtn = document.getElementById("speakBtn");
-  var songBtn = document.getElementById("songBtn");
-  var bgmBtn = document.getElementById("bgmBtn");
   var strokeBtn = document.getElementById("strokeBtn");
   var strokeSvg = document.getElementById("strokeSvg");
   var unitMark = document.getElementById("unitMark");
@@ -110,7 +108,7 @@
   }
 
   function loadProgress() {
-    var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, worksheetIndex: 0, remember: [], mute: false, bgmPaused: false };
+    var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, worksheetIndex: 0, remember: [], mute: false, bgmPaused: true };
     try {
       var p = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
       base.sessions = Number(p.sessions) || 0;
@@ -284,15 +282,31 @@
     muteBtn.setAttribute("aria-pressed", progress.mute ? "true" : "false");
   }
 
-  function updateBgmLabel() {
-    bgmBtn.textContent = progress.bgmPaused ? "おんがく" : "おんがく とめる";
+  function updateListenLabel() {
+    var label = document.getElementById("listenLabel");
+    var kanji = document.body.dataset.mode === "kanji";
+    if (label) label.textContent = kanji ? "おんがく" : "うた";
+    if (!speakBtn) return;
+    var musicOn = kanji && !progress.bgmPaused;
+    speakBtn.classList.toggle("is-on", musicOn);
+    speakBtn.setAttribute("aria-pressed", musicOn ? "true" : "false");
+    speakBtn.setAttribute("aria-label", kanji ? (musicOn ? "おんがく とめる" : "おんがく") : "九九のうた");
+  }
+
+  function kanjiMusicOff() {
+    progress.bgmPaused = true;
+    EmmaSound.setBgmPaused(true);
+    EmmaSound.stopBgm();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    updateListenLabel();
   }
 
   function applySoundFlags() {
     EmmaSound.setMuted(progress.mute);
-    EmmaSound.setBgmPaused(progress.bgmPaused);
+    EmmaSound.setBgmPaused(true);
+    progress.bgmPaused = true;
     updateMuteLabel();
-    updateBgmLabel();
+    updateListenLabel();
   }
 
   function fitHome() {
@@ -306,8 +320,7 @@
     stopPlayTimer();
     stopCamera();
     EmmaSound.stopSong();
-    EmmaSound.stopBgm();
-    songBtn.textContent = "九九のうた";
+    kanjiMusicOff();
     showOnly("home");
     fitHome();
   }
@@ -845,7 +858,6 @@ if (copy) {
   function paintQuestion(view) {
     busy = false;
     EmmaSound.stopSong();
-    songBtn.textContent = "九九のうた";
     stopStrokePlay();
     resetKanjiDrawing();
     clearInk(mathInk);
@@ -882,10 +894,7 @@ if (copy) {
       readingEl.textContent = (view.copy || hint >= 2) ? view.reading : "";
       if (view.copy || hint >= 3) paintGuide(kanjiGuide, view.answer);
       if (view.copy || hint >= 2) playStrokeOrder(view.answer, { fade: !view.copy && hint < 3 });
-      if (hint >= 1) EmmaSound.speak(view.speak);
-      EmmaSound.startBgm();
-      songBtn.hidden = true;
-      bgmBtn.hidden = false;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
       speakBtn.classList.remove("wiggle");
       void speakBtn.offsetWidth;
       if (!view.copy) speakBtn.classList.add("wiggle");
@@ -908,13 +917,7 @@ if (copy) {
       readingEl.hidden = !(isTimes && hint >= 2 && !view.copy);
       readingEl.textContent = isTimes ? view.speak : "";
       EmmaSound.stopBgm();
-      songBtn.hidden = !isTimes;
-      bgmBtn.hidden = true;
       speakBtn.classList.remove("wiggle");
-      if (hint >= 1) {
-        if (isTimes) playFactSong(view);
-        else EmmaSound.speak(view.speak);
-      }
     }
     var eqEl = document.getElementById("equation");
     var cheer = document.getElementById("cheer");
@@ -941,15 +944,13 @@ if (copy) {
         eqEl.innerHTML = "";
       }
     }
-    updateBgmLabel();
+    updateListenLabel();
     progressEl.textContent = "あと " + active.queue.length + " もん";
     setFeedback("", "");
   }
 
   function playFactSong(view) {
-    EmmaSound.playSong([{ speak: view.speak }], function () {
-      if (songBtn) songBtn.textContent = "九九のうた";
-    });
+    EmmaSound.playSong([{ speak: view.speak }]);
   }
 
   function renderFromActive() {
@@ -971,8 +972,7 @@ if (copy) {
     sessionStorage.removeItem(ACTIVE_KEY);
     active = null;
     EmmaSound.stopSong();
-    EmmaSound.stopBgm();
-    songBtn.textContent = "九九のうた";
+    kanjiMusicOff();
     showOnly("done");
     document.getElementById("doneLead").textContent = "エマ、がんばったね";
     EmmaSound.celebrate();
@@ -984,6 +984,8 @@ if (copy) {
     mode = lastMode;
     stopPlayTimer();
     stopCamera();
+    kanjiMusicOff();
+    EmmaSound.stopSong();
     var shell = document.querySelector(".card");
     if (shell) shell.hidden = false;
     var existing = readActive();
@@ -1445,10 +1447,7 @@ soonEl.hidden = true;
     saveProgress();
     applySoundFlags();
     if (progress.mute) EmmaSound.stopBgm();
-    else {
-      EmmaSound.playOpening();
-      if (document.body.dataset.mode === "kanji") EmmaSound.startBgm();
-    }
+    else EmmaSound.playOpening();
   });
 
   function arm(mode) {
@@ -1536,30 +1535,24 @@ soonEl.hidden = true;
   speakBtn.addEventListener("click", function () {
     if (!active || !active.queue.length) return;
     var view = hydrate(active.queue[0]);
-    EmmaSound.stopSong();
-    songBtn.textContent = "九九のうた";
-    if (view.kind !== "kanji" && view.a && view.b && !view.op) playFactSong(view);
-    else EmmaSound.speak(view.speak);
-  });
-  songBtn.addEventListener("click", function () {
-    if (!active || !active.queue.length || active.queue[0].kind !== "kuku") return;
-    if (EmmaSound.songPlaying()) {
+    if (view.kind === "kanji") {
       EmmaSound.stopSong();
-      songBtn.textContent = "九九のうた";
+      progress.bgmPaused = !progress.bgmPaused;
+      saveProgress();
+      EmmaSound.setBgmPaused(progress.bgmPaused);
+      if (progress.bgmPaused) EmmaSound.stopBgm();
+      else EmmaSound.startBgm();
+      updateListenLabel();
       return;
     }
-    var view = hydrate(active.queue[0]);
-    var lines = KUKU.filter(function (k) { return k.a === view.a; }).sort(function (a, b) { return a.b - b.b; });
-    songBtn.textContent = "とめる";
-    EmmaSound.playSong(lines, function () { songBtn.textContent = "九九のうた"; });
-  });
-  bgmBtn.addEventListener("click", function () {
-    progress.bgmPaused = !progress.bgmPaused;
-    saveProgress();
-    EmmaSound.setBgmPaused(progress.bgmPaused);
-    if (!progress.bgmPaused && document.body.dataset.mode === "kanji") EmmaSound.startBgm();
-    if (progress.bgmPaused) EmmaSound.stopBgm();
-    updateBgmLabel();
+    EmmaSound.stopBgm();
+    if (view.a && view.b && !view.op) {
+      if (EmmaSound.songPlaying()) EmmaSound.stopSong();
+      else playFactSong(view);
+      return;
+    }
+    EmmaSound.stopSong();
+    EmmaSound.speak(view.speak);
   });
 
   document.body.addEventListener("pointerdown", function (e) {

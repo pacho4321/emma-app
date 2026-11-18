@@ -1,9 +1,11 @@
 /*
-  Original Web Audio only. No recorded music files.
-  Opening chime, kanji study pad, sticker pop, and the 九九 jingle
-  are simple melodies written for this app.
-  The 九九 words are the traditional school chant, spoken by the
-  device voice (speechSynthesis), not a copyrighted recording.
+  Original music written for this app and played with Web Audio.
+  No recorded tracks and no copyrighted audio.
+  The kanji background is a soft original sine melody (public-domain
+  style original composition, not a copied song).
+  The 九九 button plays a short original motif plus the device's
+  own Japanese voice saying the school chant. That voice is the
+  browser speech engine, not a commercial recording.
 */
 var EmmaSound = (function () {
   var muted = false;
@@ -18,7 +20,7 @@ var EmmaSound = (function () {
   var songToken = 0;
   var songActive = false;
   var lastOpening = 0;
-  var BGM_NOTES = [261.63, 329.63, 392.0, 493.88, 440.0, 392.0, 329.63, 293.66];
+  var BGM_NOTES = [261.63, 293.66, 329.63, 392.0, 349.23, 329.63, 293.66, 261.63];
 
   function ensure() {
     if (ctx) return ctx;
@@ -69,9 +71,10 @@ function refreshBgmLevel() {
     if (!wantBgm || muted || bgmPaused || !ctx) return;
     var t = ctx.currentTime + 0.05;
     BGM_NOTES.forEach(function (f, i) {
-      tone(f, t + i * 0.95, 0.85, "sine", 0.018, bgmBus);
+      tone(f / 2, t + i * 1.15, 1.05, "sine", 0.008, bgmBus);
+      tone(f, t + i * 1.15, 0.9, "sine", 0.012, bgmBus);
     });
-    bgmTimer = setTimeout(scheduleBgm, BGM_NOTES.length * 950 - 180);
+    bgmTimer = setTimeout(scheduleBgm, BGM_NOTES.length * 1150 - 200);
   }
 
   function haltScheduler() {

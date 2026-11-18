@@ -439,6 +439,7 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
   box-shadow: none;
 }
 .speak img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.speak.is-on { filter: drop-shadow(0 0 10px #ffe08a); }
 .kuku-banner { width: auto; max-width: calc(100% - 72px); max-height: 72px; height: auto; }
 .cheer { width: min(100%, 360px); height: auto; margin: 4px auto; display: block; }
 .cheer[hidden] { display: none !important; }
