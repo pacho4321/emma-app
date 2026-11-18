@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520">
+  <defs><mask id="h"><rect width="400" height="520" fill="white"/><rect x="54" y="70" width="292" height="360" rx="18" fill="black"/></mask></defs>
+  <rect width="400" height="520" fill="#c9a4f6" mask="url(#h)"/>
+  
+  <path d="M80 36 H320" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M200 8 C176 8 160 28 168 46 C150 34 124 44 130 66 C160 62 184 78 200 64 C216 78 240 62 270 66 C276 44 250 34 232 46 C240 28 224 8 200 8Z" fill="#ff8ec0" stroke="#fff" stroke-width="3"/>
+  <path d="M28 200 c-14 8 -8 30 10 26" fill="none" stroke="#8d62ef" stroke-width="6"/>
+  <path d="M24 250 Q8 300 28 340" fill="none" stroke="#ff8ec0" stroke-width="8" stroke-linecap="round"/>
+  <path d="M372 180 Q392 230 368 280" fill="none" stroke="#d7c4f8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M150 470 H250" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M200 448 C184 448 172 462 178 474 C166 466 150 472 154 486 C172 482 186 494 200 484 C214 494 228 482 246 486 C250 472 234 466 222 474 C228 462 216 448 200 448Z" fill="#ff4f93" stroke="#fff" stroke-width="2"/>
+
+  </svg>

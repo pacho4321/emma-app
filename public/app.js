@@ -448,6 +448,21 @@
     };
   }
 
+  function fillKanjiPhrase(el, phrase, mark) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+    var at = mark ? phrase.indexOf(mark) : -1;
+    if (at < 0) {
+      el.textContent = phrase;
+      return;
+    }
+    el.appendChild(document.createTextNode(phrase.slice(0, at)));
+    var markEl = document.createElement("span");
+    markEl.className = "phrase-mark";
+    markEl.textContent = mark;
+    el.appendChild(markEl);
+    el.appendChild(document.createTextNode(phrase.slice(at + mark.length)));
+  }
+
   function hydrate(ref) {
     if (ref.kind === "kanji") {
       var k = KANJI_BY_ID[ref.id];
@@ -464,6 +479,8 @@
         reading: k.speak,
         yomi: k.yomi || k.speak,
         okuri: k.okuri || "",
+        phrase: k.phrase || k.speak,
+        mark: k.mark || k.speak,
         answer: k.kanji,
         unit: k.unit || 0,
         volume: k.volume || ""
@@ -1955,7 +1972,7 @@ if (copy) {
     var kanjiOkuri = document.getElementById("kanjiOkuri");
     if (kanjiPrompt) kanjiPrompt.hidden = !isKanji;
     if (isKanji && kanjiYomi && kanjiOkuri) {
-      kanjiYomi.textContent = view.yomi || view.reading || "";
+      fillKanjiPhrase(kanjiYomi, view.phrase || view.yomi || view.reading || "", view.mark || view.yomi || "");
       kanjiOkuri.textContent = view.okuri ? "（" + view.okuri + "）" : "";
     }
     if (isKanji) {
@@ -2218,6 +2235,7 @@ if (copy) {
   }
 
   function stopCamera() {
+    if (window.EmmaPuri) EmmaPuri.stop();
     if (stream) {
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
@@ -2415,6 +2433,7 @@ if (copy) {
   }
 
   function useDrawFallback() {
+    if (window.EmmaPuri) { EmmaPuri.cute(); return; }
     stopCamera();
     video.hidden = true;
     photoCanvas.hidden = false;
@@ -2426,6 +2445,7 @@ if (copy) {
   }
 
   function startLive() {
+    if (window.EmmaPuri) { EmmaPuri.startCamera(); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       useDrawFallback();
       return;
@@ -2468,11 +2488,13 @@ if (copy) {
   }
 
   function onShutter() {
+    if (window.EmmaPuri) { EmmaPuri.shutter(); return; }
     if (video.hidden || !stream) startLive();
     else capturePhoto();
   }
 
   function resetScene() {
+    if (window.EmmaPuri) { EmmaPuri.reset(); return; }
     stopCamera();
     video.hidden = true;
     photoCanvas.hidden = false;
@@ -2528,6 +2550,7 @@ soonEl.hidden = true;
   }
 
   function savePicture() {
+    if (window.EmmaPuri) { EmmaPuri.save(); return; }
     var out = document.createElement("canvas");
     out.width = photoCanvas.width;
     out.height = photoCanvas.height;
@@ -2551,7 +2574,7 @@ soonEl.hidden = true;
   bindDraw(mathInk, 20, false, {
     onStroke: function (pts) { mathUserStrokes.push(pts); }
   });
-  bindDraw(playInk, 16, true);
+  if (playInk) bindDraw(playInk, 16, true);
 
   muteBtn.addEventListener("click", function () {
     progress.mute = !progress.mute;
@@ -2799,11 +2822,20 @@ soonEl.hidden = true;
   var parentAdd = document.getElementById("parentAdd");
   if (parentAdd) parentAdd.addEventListener("click", addProfileFromForm);
 
-  captureBtn.addEventListener("click", onShutter);
-  resetBtn.addEventListener("click", resetScene);
-  clearPlay.addEventListener("click", function () { clearInk(playInk); });
-  savePlay.addEventListener("click", savePicture);
-  fileInput.addEventListener("change", function () {
+  if (captureBtn) captureBtn.addEventListener("click", onShutter);
+  if (resetBtn) resetBtn.addEventListener("click", function () {
+    if (window.EmmaPuri) EmmaPuri.startCamera();
+    else resetScene();
+  });
+  if (clearPlay && playInk) clearPlay.addEventListener("click", function () { clearInk(playInk); });
+  if (savePlay) savePlay.addEventListener("click", savePicture);
+  if (fileInput) fileInput.addEventListener("change", function () {
+    var picked = fileInput.files && fileInput.files[0];
+    if (picked && window.EmmaPuri) {
+      EmmaPuri.loadFile(picked);
+      fileInput.value = "";
+      return;
+    }
     var file = fileInput.files && fileInput.files[0];
     fileInput.value = "";
     if (!file) return;
@@ -2828,12 +2860,14 @@ soonEl.hidden = true;
     img.src = url;
   });
 
-  document.getElementById("styleRow").addEventListener("click", function (e) {
+  var styleRow = document.getElementById("styleRow");
+  if (styleRow) styleRow.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-style]");
     if (!btn) return;
     setStyle(btn.getAttribute("data-style"));
   });
-  document.getElementById("toolRow").addEventListener("click", function (e) {
+  var toolRow = document.getElementById("toolRow");
+  if (toolRow) toolRow.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-tool]");
     if (!btn) return;
     tool = btn.getAttribute("data-tool");

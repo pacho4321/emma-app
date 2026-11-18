@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 520">
+  <defs><mask id="h"><rect width="400" height="520" fill="white"/><rect x="54" y="70" width="292" height="360" rx="18" fill="black"/></mask></defs>
+  <rect width="400" height="520" fill="#ff8ec8" mask="url(#h)"/>
+  
+  <path d="M200 18 C170 18 150 40 160 62 C140 48 110 58 116 82 C150 78 176 96 200 78 C224 96 250 78 284 82 C290 58 260 48 240 62 C250 40 230 18 200 18Z" fill="#ff4f93" stroke="#fff" stroke-width="3"/>
+  <circle cx="200" cy="58" r="8" fill="#ffe14a" stroke="#fff" stroke-width="2"/>
+  <path d="M36 150 c-16 10 -10 36 12 32 c-8 16 10 28 22 16 c8-18 4-36 -8-42 c-6-12 -18-12 -26-6Z" fill="#ff4f93" stroke="#fff" stroke-width="2"/>
+  <path d="M364 360 c16 8 8 34 -14 30 c8 16 -12 28 -24 14 c-6-16 -2-34 10-40 c8-12 20-10 28-4Z" fill="#ff8ec0" stroke="#fff" stroke-width="2"/>
+  <path d="M48 420 l8 -16 8 16 16 4 -14 10 4 16 -14 -10 -14 10 4 -16 -14 -10Z" fill="#ffe14a"/>
+  <path d="M330 120 l6 -12 6 12 12 3 -10 8 3 12 -11 -8 -11 8 3 -12 -10 -8Z" fill="#fff"/>
+  <text x="200" y="490" text-anchor="middle" font-size="28" font-weight="900" fill="#fff" font-family="sans-serif">ぷりくら ♡</text>
+
+  </svg>
