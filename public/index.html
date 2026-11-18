@@ -56,49 +56,59 @@
 
   <main class="card" hidden>
 
-    <section id="play" hidden>
-      <div class="play-head">
-        <div class="banner">しゃしん あそび</div>
-        <div class="cakes" id="cakes" aria-hidden="true">🧁🧁🧁🧁🧁</div>
-        <div class="timer" id="timer">5:00</div>
-        <div class="soon" id="soon" hidden>もうすぐ べんきょうだよ</div>
-        <p class="note" id="playNote">5ぷん あそぼう</p>
+    <section id="play" class="puri" hidden>
+      <div class="puri-top">
+        <button type="button" id="playBack" class="puri-back" aria-label="もどる">←</button>
+        <div class="puri-brand">プリクラ ♥</div>
+        <div class="puri-count" id="timer">5:00</div>
+        <button type="button" id="puriGear" class="puri-gear" aria-label="デコ">⚙</button>
       </div>
-      <div class="play-body">
-        <div class="stage" id="stage">
+      <h2 class="puri-title">かわいいプリクラつくろう♪</h2>
+      <div class="puri-main">
+        <div class="puri-col" id="puriLeft"></div>
+        <div class="puri-stage" id="puriStage">
           <video id="video" playsinline autoplay muted hidden></video>
-          <canvas id="photoCanvas" width="640" height="360"></canvas>
-          <div class="sparkle-layer" id="sparkleLayer" hidden></div>
-          <canvas id="playInk" width="640" height="360"></canvas>
+          <canvas id="puriView"></canvas>
+          <button type="button" id="captureBtn" class="puri-shutter">とる</button>
+          <div id="puriHandles" class="puri-handles" hidden>
+            <button type="button" data-h="del" aria-label="けす">×</button>
+            <button type="button" data-h="rot" aria-label="まわす">↻</button>
+            <button type="button" data-h="scale" aria-label="おおきさ">＋</button>
+            <button type="button" data-h="front" aria-label="まえ">前</button>
+          </div>
         </div>
-        <div class="play-controls">
-          <div class="play-actions">
-            <button type="button" id="captureBtn" class="btn pink">しゃしん</button>
-            <label class="btn purple file-btn" for="fileInput">えらぶ</label>
-            <input id="fileInput" type="file" accept="image/*" hidden>
-            <button type="button" id="resetBtn" class="btn amber">もどす</button>
-          </div>
-          <div class="styles" id="styleRow">
-            <button type="button" class="chip picked" data-style="normal">そのまま</button>
-            <button type="button" class="chip" data-style="bright">あかるく</button>
-            <button type="button" class="chip" data-style="toon">アニメっぽい</button>
-            <button type="button" class="chip" data-style="sparkle">キラキラ</button>
-          </div>
-          <div class="stickers" id="toolRow">
-            <button type="button" class="chip picked" data-tool="draw">かく</button>
-            <button type="button" class="chip" data-tool="🧁" aria-label="シール カップケーキ">🧁</button>
-            <button type="button" class="chip" data-tool="⭐" aria-label="シール ほし">⭐</button>
-            <button type="button" class="chip" data-tool="🐰" aria-label="シール うさぎ">🐰</button>
-            <button type="button" class="chip" data-tool="🌸" aria-label="シール はな">🌸</button>
-            <button type="button" class="chip" data-tool="💛" aria-label="シール ハート">💛</button>
-          </div>
-          <div class="play-actions">
-            <button type="button" id="clearPlay" class="btn amber">けす</button>
-            <button type="button" id="savePlay" class="btn blue">ほぞん</button>
-          </div>
-          <button type="button" id="playBack" class="btn blue back">もどる</button>
-        </div>
+        <div class="puri-col" id="puriRight"></div>
       </div>
+      <div class="puri-tray" id="puriTray" hidden></div>
+      <div class="puri-pen">
+        <button type="button" data-size="0.008" class="picked" aria-label="ほそい">細</button>
+        <button type="button" data-size="0.016" aria-label="ふつう">中</button>
+        <button type="button" data-size="0.03" aria-label="ふとい">太</button>
+        <button type="button" id="puriGlitterPen" aria-label="きらきらペン">✦</button>
+        <button type="button" id="puriEraser" aria-label="けしごむ">消</button>
+        <button type="button" id="puriUndo" aria-label="もとにもどす">戻</button>
+      </div>
+      <div class="puri-colors" id="puriColors"></div>
+      <div class="puri-actions">
+        <button type="button" id="puriText"><img alt="" src="assets/purikura/icon-text.svg"><span>テキスト入力</span></button>
+        <button type="button" id="puriSpark"><img alt="" src="assets/purikura/icon-spark.svg"><span>きらきらエフェクト</span></button>
+        <button type="button" id="puriFilter"><img alt="" src="assets/purikura/icon-filter.svg"><span>フィルター</span></button>
+        <button type="button" id="resetBtn"><img alt="" src="assets/purikura/icon-camera.svg"><span>カメラもどる</span></button>
+      </div>
+      <form id="puriTextForm" class="puri-textform" hidden>
+        <input id="puriTextInput" maxlength="16" placeholder="もじ" autocomplete="off">
+        <button type="submit">おく</button>
+      </form>
+      <img class="puri-bg" src="assets/purikura/bg.svg" alt="">
+      <div class="puri-foot">
+        <button type="button" id="puriHome" class="puri-home" aria-label="ホーム"><img alt="" src="assets/purikura/icon-home.svg"></button>
+        <button type="button" id="puriPrint" class="puri-print"><img alt="" src="assets/purikura/icon-camera.svg"><span>プリントする♪</span></button>
+        <button type="button" id="savePlay" class="puri-save"><img alt="" src="assets/purikura/icon-save.svg"><span>保存する</span></button>
+      </div>
+      <p id="cakes" hidden></p>
+      <p id="soon" hidden></p>
+      <p id="playNote" class="puri-note"></p>
+      <input id="fileInput" type="file" accept="image/*" hidden>
     </section>
 
     <section id="study" hidden>
@@ -208,6 +218,7 @@
   <script src="curriculum.js"></script>
   <script src="strokes.js"></script>
   <script src="sound.js"></script>
+  <script src="purikura.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,4 @@
+Kosugi Maru
+Copyright 2014 The Kosugi Maru Project Authors (https://github.com/googlefonts/kosugi-maru)
+Licensed under the SIL Open Font License, Version 1.1. See OFL.txt.
+This file is a subset (Latin, kana, and a few kanji) for offline use.

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<defs>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="3" stdDeviation="2.4" flood-color="#d46a96" flood-opacity="0.38"/>
+  </filter>
+  <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.9"/>
+    <stop offset="0.42" stop-color="#fff" stop-opacity="0.08"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.14"/>
+  </linearGradient>
+  <radialGradient id="shine" cx="32%" cy="28%" r="38%">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
+    <stop offset="0.55" stop-color="#fff" stop-opacity="0.15"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="pink" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffd0e6"/>
+    <stop offset="0.45" stop-color="#ff5fa2"/>
+    <stop offset="1" stop-color="#e2186a"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff6c4"/>
+    <stop offset="0.5" stop-color="#ffe14a"/>
+    <stop offset="1" stop-color="#f0b429"/>
+  </linearGradient>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#eaf6ff"/>
+    <stop offset="1" stop-color="#7ec8ff"/>
+  </linearGradient>
+  <pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse">
+    <circle cx="4" cy="4" r="2.2" fill="#fff" opacity="0.85"/>
+  </pattern>
+  <pattern id="gingham" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#ffd0e6"/>
+    <rect width="8" height="8" fill="#ff8ec0"/>
+    <rect x="8" y="8" width="8" height="8" fill="#ff8ec0"/>
+  </pattern>
+  <pattern id="stripe" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+    <rect width="10" height="10" fill="#ff8ec0"/>
+    <rect width="5" height="10" fill="#fff" opacity="0.55"/>
+  </pattern>
+</defs>
+<g filter="url(#sh)"><path d="M100.0 22.0L119.3 73.5L174.2 75.9L131.2 110.1L145.8 163.1L100.0 132.8L54.2 163.1L68.8 110.1L25.8 75.9L80.7 73.5Z" fill="url(#gold)" stroke="#fff" stroke-width="6"/>
+  <path d="M100.0 22.0L119.3 73.5L174.2 75.9L131.2 110.1L145.8 163.1L100.0 132.8L54.2 163.1L68.8 110.1L25.8 75.9L80.7 73.5Z" fill="url(#shine)"/>
+  <path d="M100 28 L108 92 L172 100 L108 108 L100 172 L92 108 L28 100 L92 92 Z" fill="#fff" opacity="0.35"/></g>
+</svg>
