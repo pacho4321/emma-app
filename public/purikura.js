@@ -45,6 +45,7 @@
     ["ホワイト", "#fffffd"]
   ];
   var FRAMES = ["pink", "purple", "cloud", "glitter", "bow"];
+  var PHOTO_RATIO = 3 / 4;
 
   var photo = document.createElement("canvas");
   var view, stage, video, tray, handles;
@@ -87,6 +88,48 @@
     var scale = Math.min(1, maxSide / Math.max(w, h));
     photo.width = Math.max(2, Math.round(w * scale));
     photo.height = Math.max(2, Math.round(h * scale));
+  }
+
+  function coverCrop(sw, sh) {
+    var cropW;
+    var cropH;
+    if (sw / sh > PHOTO_RATIO) {
+      cropH = sh;
+      cropW = sh * PHOTO_RATIO;
+    } else {
+      cropW = sw;
+      cropH = sw / PHOTO_RATIO;
+    }
+    var scale = Math.min(1, 1920 / Math.max(cropW, cropH));
+    return {
+      sx: (sw - cropW) / 2,
+      sy: (sh - cropH) / 2,
+      sw: cropW,
+      sh: cropH,
+      dw: Math.max(2, Math.round(cropW * scale)),
+      dh: Math.max(2, Math.round(cropH * scale))
+    };
+  }
+
+  function stickerNormH(widthFrac, imgAspect) {
+    return widthFrac * PHOTO_RATIO * (imgAspect || 1);
+  }
+
+  function fitStage() {
+    var slot = el("puriFit");
+    if (!slot || !stage) return;
+    var availW = slot.clientWidth;
+    var availH = slot.clientHeight;
+    if (availW < 16 || availH < 16) return;
+    var border = 8;
+    var innerW = Math.max(2, availW - border);
+    var innerH = innerW / PHOTO_RATIO;
+    if (innerH > availH - border) {
+      innerH = Math.max(2, availH - border);
+      innerW = innerH * PHOTO_RATIO;
+    }
+    stage.style.width = Math.floor(innerW + border) + "px";
+    stage.style.height = Math.floor(innerH + border) + "px";
   }
 
   function drawCute(ctx, w, h) {
@@ -145,7 +188,7 @@
 
   function cute() {
     stop();
-    resizeTo(1280, 960);
+    resizeTo(1440, 1920);
     drawCute(photo.getContext("2d"), photo.width, photo.height);
     showStill();
     redraw();
@@ -186,8 +229,8 @@
       audio: false,
       video: {
         facingMode: "user",
-        width: { ideal: 1920 },
-        height: { ideal: 1440 }
+        width: { ideal: 1440 },
+        height: { ideal: 1920 }
       }
     }).then(function (s) {
       if (!stage || stage.closest("[hidden]")) {
@@ -205,17 +248,18 @@
   }
 
   function paintPhoto(bmp) {
-    var w = bmp.videoWidth || bmp.naturalWidth || bmp.width;
-    var h = bmp.videoHeight || bmp.naturalHeight || bmp.height;
-    if (!w || !h) { cute(); return; }
-    resizeTo(w, h);
+    var sw = bmp.videoWidth || bmp.naturalWidth || bmp.width;
+    var sh = bmp.videoHeight || bmp.naturalHeight || bmp.height;
+    if (!sw || !sh) { cute(); return; }
+    var crop = coverCrop(sw, sh);
+    resizeTo(crop.dw, crop.dh);
     var ctx = photo.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, photo.width, photo.height);
     ctx.save();
     ctx.translate(photo.width, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(bmp, 0, 0, photo.width, photo.height);
+    ctx.drawImage(bmp, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, photo.width, photo.height);
     ctx.restore();
     showStill();
     redraw();
@@ -254,19 +298,16 @@
   }
 
   function outSize() {
-    var r = view ? view.getBoundingClientRect() : { width: 400, height: 520 };
-    var aspect = r.width / Math.max(1, r.height);
-    var h = 1600;
-    var w = Math.round(h * aspect);
-    if (w > 1600) {
-      w = 1600;
-      h = Math.round(w / aspect);
+    var w = photo.width || 1440;
+    var h = photo.height || 1920;
+    if (Math.abs(w / Math.max(1, h) - PHOTO_RATIO) > 0.02) {
+      h = Math.max(2, h);
+      w = Math.max(2, Math.round(h * PHOTO_RATIO));
     }
-    var holeW = w * 0.72;
-    if (photo.width && holeW > photo.width) {
-      var fit = photo.width / holeW;
-      w = Math.max(2, Math.round(w * fit));
-      h = Math.max(2, Math.round(h * fit));
+    var cap = 1920 / Math.max(w, h);
+    if (cap < 1) {
+      w = Math.max(2, Math.round(w * cap));
+      h = Math.max(2, Math.round(h * cap));
     }
     return { w: w, h: h };
   }
@@ -390,7 +431,11 @@
 
   function drawFrame(ctx, w, h) {
     var img = images["frame-" + frameId + ".webp"];
-    if (img && img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, w, h);
+    if (!img || !img.complete || !img.naturalWidth) return;
+    var scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+    var dw = img.naturalWidth * scale;
+    var dh = img.naturalHeight * scale;
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
   }
 
   function paint(ctx, w, h, t) {
@@ -418,6 +463,7 @@
   }
 
   function redraw() {
+    fitStage();
     if (!view || live) return;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var cssW = view.clientWidth || 300;
@@ -465,15 +511,15 @@
     var img = images[name];
     var aspect = img && img.naturalWidth ? img.naturalHeight / img.naturalWidth : 1;
     var wide = name.indexOf("stamp") === 0;
-    var width = wide ? 0.52 : 0.2;
+    var width = wide ? 0.52 : 0.22;
     items.push({
       id: nextId++,
       kind: "sticker",
       src: name,
       x: wide ? 0.5 : spot[0],
-      y: wide ? 0.22 : spot[1],
+      y: wide ? 0.28 : spot[1],
       w: width,
-      h: width,
+      h: stickerNormH(width, aspect),
       aspect: aspect,
       rot: 0
     });
@@ -591,9 +637,9 @@
       redraw();
     } else if (drag.kind === "scale" && items[selected]) {
       var it = items[selected];
-      var dist = Math.hypot(p.x - it.x, p.y - it.y);
+      var dist = Math.hypot(p.x - it.x, (p.y - it.y) / PHOTO_RATIO);
       it.w = Math.max(0.08, Math.min(0.9, dist * 2));
-      it.h = it.kind === "text" ? it.w * 0.28 : it.w;
+      it.h = it.kind === "text" ? it.w * 0.28 : stickerNormH(it.w, it.aspect || 1);
       redraw();
     } else if (drag.kind === "rot" && items[selected]) {
       var it2 = items[selected];
@@ -822,8 +868,11 @@
     img.onload = function () {
       URL.revokeObjectURL(url);
       stop();
-      resizeTo(img.naturalWidth || img.width, img.naturalHeight || img.height);
-      photo.getContext("2d").drawImage(img, 0, 0, photo.width, photo.height);
+      var sw = img.naturalWidth || img.width;
+      var sh = img.naturalHeight || img.height;
+      var crop = coverCrop(sw, sh);
+      resizeTo(crop.dw, crop.dh);
+      photo.getContext("2d").drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, photo.width, photo.height);
       showStill();
       redraw();
     };
@@ -840,7 +889,7 @@
     glitter = false;
     deco = false;
     hideTray();
-    resizeTo(1280, 960);
+    resizeTo(1440, 1920);
     drawCute(photo.getContext("2d"), photo.width, photo.height);
     showStill();
     requestAnimationFrame(redraw);

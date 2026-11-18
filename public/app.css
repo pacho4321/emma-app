@@ -998,8 +998,16 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: clamp(52px, 14vmin, 84px) minmax(0, 1fr) clamp(52px, 14vmin, 84px);
+  grid-template-columns: clamp(46px, 12vmin, 78px) minmax(0, 1fr) clamp(46px, 12vmin, 78px);
+  grid-template-rows: minmax(0, 1fr);
   gap: 4px;
+}
+.puri-fit {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .puri-col { display: flex; flex-direction: column; gap: 3px; min-height: 0; overflow: hidden; }
 .puri-col button {
@@ -1026,8 +1034,10 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
 .puri-col button.tile-right { background: linear-gradient(180deg, #f7e9ff, #c9a4f6); color: #6a3ec4; }
 .puri-stage {
   position: relative;
-  min-width: 0;
-  min-height: 0;
+  flex: 0 0 auto;
+  aspect-ratio: 3 / 4;
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 18px;
   overflow: hidden;
   background: #ffe4f3;
