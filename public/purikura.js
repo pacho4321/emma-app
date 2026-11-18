@@ -4,15 +4,16 @@
   Saving paints the same layers again at full resolution.
 */
 (function () {
-  var BASE = "assets/purikura/";
+  var BASE = "assets/purikura/real/";
   var CATS = {
-    heart: ["heart", "heart-dot", "heart-gingham", "heart-lace", "heart-wing", "heart-stripe", "heart-small", "heart-bow"],
-    star: ["star", "star-wink", "star-small", "star-bow", "star-heart", "spark", "spark-pink"],
-    ribbon: ["bow", "bow-dot", "bow-gingham", "bow-white", "bow-tiny", "bow-heart"],
-    flower: ["flower", "flower-small", "tulip", "spark-cluster"],
-    chara: ["bunny", "bunny-wink", "cat", "bear", "cloud", "flower-face"],
-    more: ["spark-cluster", "heart-wing", "star-bow", "bow-heart", "bear", "tulip", "bunny-wink", "spark-pink"]
+    heart: ["sticker-sukiyo.webp", "heart-02.webp", "heart-03.webp", "heart-04.webp", "heart-05.webp", "heart-06.webp", "heart-10.webp", "heart-11.webp", "heart-14.webp", "heart-17.webp", "heart-19.webp", "heart-20.webp", "heart-24.webp"],
+    star: ["sticker-yellowstar.webp", "sticker-winkstar.webp", "heart-01.webp", "heart-07.webp", "heart-12.webp", "heart-16.webp", "heart-18.webp"],
+    ribbon: ["heart-08.webp", "heart-09.webp", "heart-13.webp", "heart-15.webp", "heart-21.webp", "heart-22.webp", "heart-23.webp", "heart-25.webp", "chara-07.webp"],
+    flower: ["sticker-sakura.webp", "chara-06.webp"],
+    chara: ["sticker-bunny.webp", "chara-01.webp", "chara-02.webp", "chara-03.webp", "chara-04.webp", "chara-05.webp"],
+    more: ["chara-08.webp", "heart-19.webp", "sticker-winkstar.webp", "heart-22.webp", "chara-04.webp"]
   };
+  var STAMPS = ["stamp-daisuki.webp", "stamp-memory.webp", "stamp-05.webp", "stamp-06.webp", "stamp-07.webp"];
   var TEXTS = [
     ["だいすき〜!", "#ff4f93"],
     ["最高の思い出♡", "#8d62ef"],
@@ -30,20 +31,20 @@
     ["bw", "モノクロ", "grayscale(1) contrast(1.08)"]
   ];
   var COLORS = [
-    ["ぴんく", "#ff4f93"],
-    ["むらさき", "#8d62ef"],
-    ["あお", "#3aa0ff"],
-    ["きいろ", "#ffe14a"],
-    ["みどり", "#3dcb7a"],
-    ["オレンジ", "#ff9a3c"],
-    ["ベビーピンク", "#ffd0e4"],
-    ["ラベンダー", "#d7c4f8"],
-    ["スカイブルー", "#8fd4ff"],
-    ["レモンイエロー", "#fff3a1"],
-    ["キラキラグリーン", "#b6f5c8"],
-    ["ホワイト", "#ffffff"]
+    ["ぴんく", "#ff6fad"],
+    ["むらさき", "#bc7ee9"],
+    ["あお", "#4eb6fd"],
+    ["きいろ", "#fee145"],
+    ["みどり", "#8be5c1"],
+    ["オレンジ", "#fcb37e"],
+    ["ベビーピンク", "#fec5d8"],
+    ["ラベンダー", "#d4a9f0"],
+    ["スカイブルー", "#97d9fc"],
+    ["レモンイエロー", "#ffe6ac"],
+    ["キラキラグリーン", "#c3ea6d"],
+    ["ホワイト", "#fffffd"]
   ];
-  var FRAMES = ["pink", "purple", "cloud"];
+  var FRAMES = ["pink", "purple", "cloud", "glitter", "bow"];
 
   var photo = document.createElement("canvas");
   var view, stage, video, tray, handles;
@@ -69,12 +70,13 @@
     Object.keys(CATS).forEach(function (cat) {
       CATS[cat].forEach(function (name) { want(name); });
     });
-    FRAMES.forEach(function (name) { want("frame-" + name); });
+    FRAMES.forEach(function (name) { want("frame-" + name + ".webp"); });
+    STAMPS.forEach(function (name) { want(name); });
   }
   function want(name) {
     if (images[name]) return;
     var img = new Image();
-    img.src = BASE + name + ".svg";
+    img.src = BASE + (name.indexOf(".") >= 0 ? name : name + ".svg");
     images[name] = img;
   }
 
@@ -359,7 +361,7 @@
       } else {
         var img = images[it.src];
         var dw = it.w * w;
-        var dh = it.h * h;
+        var dh = it.aspect ? dw * it.aspect : it.h * h;
         if (img && img.complete && img.naturalWidth) ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
       }
       ctx.restore();
@@ -378,7 +380,7 @@
 
   function drawDeco(ctx, w, h) {
     if (!deco) return;
-    var img = images.bow;
+    var img = images["heart-22.webp"];
     if (!img || !img.complete) return;
     var s = Math.min(w, h) * 0.16;
     [[0.08, 0.1], [0.92, 0.1], [0.1, 0.9], [0.9, 0.88]].forEach(function (p) {
@@ -387,27 +389,20 @@
   }
 
   function drawFrame(ctx, w, h) {
-    var img = images["frame-" + frameId];
+    var img = images["frame-" + frameId + ".webp"];
     if (img && img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, w, h);
   }
 
   function paint(ctx, w, h, t) {
     ctx.clearRect(0, 0, w, h);
-    var hx = w * 0.14;
-    var hy = h * 0.145;
-    var hw = w * 0.72;
-    var hh = h * 0.68;
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(hx, hy, hw, hh);
-    ctx.clip();
     ctx.filter = filterCss();
     var pw = photo.width || 4;
     var ph = photo.height || 3;
-    var scale = Math.max(hw / pw, hh / ph);
+    var scale = Math.max(w / pw, h / ph);
     var dw = pw * scale;
     var dh = ph * scale;
-    ctx.drawImage(photo, hx + (hw - dw) / 2, hy + (hh - dh) / 2, dw, dh);
+    ctx.drawImage(photo, (w - dw) / 2, (h - dh) / 2, dw, dh);
     ctx.filter = "none";
     ctx.restore();
     drawInk(ctx, w, h);
@@ -415,17 +410,6 @@
     drawDeco(ctx, w, h);
     drawGlitter(ctx, w, h, t || 0);
     drawFrame(ctx, w, h);
-    if (frameId === "pink" || frameId === "purple") {
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = frameId === "purple" ? "#8d62ef" : "#ff4f93";
-      ctx.font = "700 " + Math.round(h * 0.032) + "px 'Kosugi Maru', sans-serif";
-      ctx.fillText("ぷりくら ♡", w * 0.5, h * 0.875);
-      ctx.font = "700 " + Math.round(h * 0.028) + "px 'Kosugi Maru', sans-serif";
-      ctx.fillText("最高の思い出っ♡", w * 0.5, h * 0.91);
-      ctx.restore();
-    }
   }
 
   function filterCss() {
@@ -475,17 +459,22 @@
 
   var placeN = 0;
   function addSticker(name) {
-    var spots = [[0.3, 0.7], [0.72, 0.34], [0.62, 0.72], [0.38, 0.4]];
+    var spots = [[0.32, 0.68], [0.74, 0.52], [0.58, 0.74], [0.38, 0.4]];
     var spot = spots[placeN % spots.length];
     placeN++;
+    var img = images[name];
+    var aspect = img && img.naturalWidth ? img.naturalHeight / img.naturalWidth : 1;
+    var wide = name.indexOf("stamp") === 0;
+    var width = wide ? 0.52 : 0.2;
     items.push({
       id: nextId++,
       kind: "sticker",
       src: name,
-      x: spot[0],
-      y: spot[1],
-      w: 0.2,
-      h: 0.2,
+      x: wide ? 0.5 : spot[0],
+      y: wide ? 0.22 : spot[1],
+      w: width,
+      h: width,
+      aspect: aspect,
       rot: 0
     });
     selected = items.length - 1;
@@ -527,7 +516,7 @@
 
   function stickerButtons(names) {
     return names.map(function (name) {
-      return "<button type='button' data-sticker='" + name + "'><img alt='' src='" + BASE + name + ".svg'></button>";
+      return "<button type='button' data-sticker='" + name + "'><img alt='' src='" + BASE + name + "'></button>";
     }).join("");
   }
 
@@ -536,8 +525,8 @@
   }
 
   function openText() {
-    var html = TEXTS.map(function (row, i) {
-      return "<button type='button' data-stamp='" + i + "'>" + row[0] + "</button>";
+    var html = STAMPS.map(function (name) {
+      return "<button type='button' data-sticker='" + name + "'><img alt='' src='" + BASE + name + "'></button>";
     }).join("");
     showTray(html);
     var form = el("puriTextForm");
@@ -552,7 +541,7 @@
 
   function openFrames() {
     showTray(FRAMES.map(function (name) {
-      return "<button type='button' data-frame='" + name + "'><img alt='' src='" + BASE + "frame-" + name + ".svg'></button>";
+      return "<button type='button' data-frame='" + name + "'><img alt='' src='" + BASE + "frame-" + name + ".webp'></button>";
     }).join(""));
   }
 
@@ -622,12 +611,12 @@
     var right = el("puriRight");
     if (!left || !right) return;
     var leftItems = [
-      ["heart", "ハート", "icon-heart.svg", "tile-heart"],
-      ["star", "スター", "icon-star.svg", "tile-star"],
-      ["ribbon", "リボン", "icon-bow.svg", "tile-bow"],
-      ["flower", "おはな", "icon-flower.svg", "tile-flower"],
-      ["chara", "キャラ", "icon-chara.svg", "tile-chara"],
-      ["more", "もっと見る", "icon-more.svg", "tile-more"]
+      ["heart", "ハート", "sticker-sukiyo.webp", "tile-heart"],
+      ["star", "スター", "sticker-yellowstar.webp", "tile-star"],
+      ["ribbon", "リボン", "heart-22.webp", "tile-bow"],
+      ["flower", "おはな", "sticker-sakura.webp", "tile-flower"],
+      ["chara", "キャラ", "sticker-bunny.webp", "tile-chara"],
+      ["more", "もっと見る", "chara-08.webp", "tile-more"]
     ];
     left.innerHTML = leftItems.map(function (row) {
       return "<button type='button' class='" + row[3] + "' data-cat='" + row[0] + "'><img alt='' src='" + BASE + row[2] + "'><span>" + row[1] + "</span></button>";
@@ -640,7 +629,7 @@
       ["frame", "フレーム", "icon-frame.svg"]
     ];
     right.innerHTML = rightItems.map(function (row) {
-      return "<button type='button' class='tile-right' data-tool='" + row[0] + "'><img alt='' src='" + BASE + row[2] + "'><span>" + row[1] + "</span></button>";
+      return "<button type='button' class='tile-right' data-tool='" + row[0] + "'><img alt='' src='assets/purikura/" + row[2] + "'><span>" + row[1] + "</span></button>";
     }).join("");
     var colors = el("puriColors");
     if (colors) {
