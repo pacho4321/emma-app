@@ -45,7 +45,8 @@
     ["ホワイト", "#fffffd"]
   ];
   var FRAMES = ["pink", "purple", "cloud", "glitter", "bow"];
-  var PHOTO_RATIO = 3 / 4;
+  var choosing = true;
+  var openTab = "";
 
   var photo = document.createElement("canvas");
   var view, stage, video, tray, handles;
@@ -90,15 +91,23 @@
     photo.height = Math.max(2, Math.round(h * scale));
   }
 
+  function viewRatio() {
+    var w = (stage && stage.clientWidth) || 9;
+    var h = (stage && stage.clientHeight) || 16;
+    if (w < 2 || h < 2) return 9 / 16;
+    return w / h;
+  }
+
   function coverCrop(sw, sh) {
+    var ratio = viewRatio();
     var cropW;
     var cropH;
-    if (sw / sh > PHOTO_RATIO) {
+    if (sw / sh > ratio) {
       cropH = sh;
-      cropW = sh * PHOTO_RATIO;
+      cropW = sh * ratio;
     } else {
       cropW = sw;
-      cropH = sw / PHOTO_RATIO;
+      cropH = sw / ratio;
     }
     var scale = Math.min(1, 1920 / Math.max(cropW, cropH));
     return {
@@ -112,24 +121,28 @@
   }
 
   function stickerNormH(widthFrac, imgAspect) {
-    return widthFrac * PHOTO_RATIO * (imgAspect || 1);
+    return widthFrac * viewRatio() * (imgAspect || 1);
   }
 
   function fitStage() {
-    var slot = el("puriFit");
-    if (!slot || !stage) return;
-    var availW = slot.clientWidth;
-    var availH = slot.clientHeight;
-    if (availW < 16 || availH < 16) return;
-    var border = 8;
-    var innerW = Math.max(2, availW - border);
-    var innerH = innerW / PHOTO_RATIO;
-    if (innerH > availH - border) {
-      innerH = Math.max(2, availH - border);
-      innerW = innerH * PHOTO_RATIO;
+    if (!stage) return;
+    stage.style.width = "";
+    stage.style.height = "";
+  }
+
+  function standSize() {
+    var ratio = viewRatio();
+    var longSide = 1920;
+    var w;
+    var h;
+    if (ratio >= 1) {
+      w = longSide;
+      h = Math.max(2, Math.round(longSide / ratio));
+    } else {
+      h = longSide;
+      w = Math.max(2, Math.round(longSide * ratio));
     }
-    stage.style.width = Math.floor(innerW + border) + "px";
-    stage.style.height = Math.floor(innerH + border) + "px";
+    return { w: w, h: h };
   }
 
   function drawCute(ctx, w, h) {
@@ -188,28 +201,48 @@
 
   function cute() {
     stop();
-    resizeTo(1440, 1920);
+    var size = standSize();
+    resizeTo(size.w, size.h);
     drawCute(photo.getContext("2d"), photo.width, photo.height);
-    showStill();
+    showChoose();
     redraw();
   }
 
-  function showStill() {
+  function showChrome(which) {
+    choosing = which !== "edit";
+    var cam = el("puriCam");
+    var edit = el("puriEdit");
+    if (cam) cam.hidden = which === "edit";
+    if (edit) edit.hidden = which !== "edit";
+    if (view) view.style.pointerEvents = which === "live" ? "none" : "auto";
+  }
+
+  function showChoose() {
     live = false;
     if (video) video.hidden = true;
     if (view) view.hidden = false;
-    var shutter = el("captureBtn");
-    if (shutter) shutter.hidden = true;
+    showChrome("choose");
+    selected = -1;
+    placeHandles();
+    paintDots();
+  }
+
+  function showEdit() {
+    live = false;
+    if (video) video.hidden = true;
+    if (view) view.hidden = false;
+    showChrome("edit");
+    paintDots();
   }
 
   function showLive() {
     live = true;
     if (video) video.hidden = false;
-    if (view) view.hidden = true;
-    var shutter = el("captureBtn");
-    if (shutter) shutter.hidden = false;
+    if (view) view.hidden = false;
+    showChrome("live");
     selected = -1;
     placeHandles();
+    paintDots();
   }
 
   function stop() {
@@ -261,7 +294,7 @@
     ctx.scale(-1, 1);
     ctx.drawImage(bmp, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, photo.width, photo.height);
     ctx.restore();
-    showStill();
+    showEdit();
     redraw();
   }
 
@@ -294,20 +327,19 @@
 
   function shutter() {
     if (live && stream) capture();
+    else if (choosing) showEdit();
     else startCamera();
+    redraw();
   }
 
   function outSize() {
-    var w = photo.width || 1440;
-    var h = photo.height || 1920;
-    if (Math.abs(w / Math.max(1, h) - PHOTO_RATIO) > 0.02) {
-      h = Math.max(2, h);
-      w = Math.max(2, Math.round(h * PHOTO_RATIO));
-    }
-    var cap = 1920 / Math.max(w, h);
-    if (cap < 1) {
-      w = Math.max(2, Math.round(w * cap));
-      h = Math.max(2, Math.round(h * cap));
+    var size = standSize();
+    var w = size.w;
+    var h = size.h;
+    if (photo.width && photo.height && (w > photo.width || h > photo.height)) {
+      var s = Math.min(photo.width / w, photo.height / h);
+      w = Math.max(2, Math.round(w * s));
+      h = Math.max(2, Math.round(h * s));
     }
     return { w: w, h: h };
   }
@@ -464,14 +496,19 @@
 
   function redraw() {
     fitStage();
-    if (!view || live) return;
+    if (!view) return;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var cssW = view.clientWidth || 300;
-    var cssH = view.clientHeight || 400;
+    var cssW = view.clientWidth || stage.clientWidth || 300;
+    var cssH = view.clientHeight || stage.clientHeight || 400;
     view.width = Math.max(2, Math.round(cssW * dpr));
     view.height = Math.max(2, Math.round(cssH * dpr));
     var ctx = view.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (live) {
+      ctx.clearRect(0, 0, view.width, view.height);
+      drawFrame(ctx, view.width, view.height);
+      return;
+    }
     ctx.fillStyle = "#ffe4f3";
     ctx.fillRect(0, 0, view.width, view.height);
     var snap = document.createElement("canvas");
@@ -501,6 +538,24 @@
     handles.hidden = false;
     handles.style.left = (box.left - stageRect.left + it.x * box.width) + "px";
     handles.style.top = (box.top - stageRect.top + it.y * box.height - 18) + "px";
+  }
+
+  var swipe = null;
+  function frameIndex() {
+    var i = FRAMES.indexOf(frameId);
+    return i < 0 ? 0 : i;
+  }
+  function stepFrame(dir) {
+    frameId = FRAMES[(frameIndex() + dir + FRAMES.length) % FRAMES.length];
+    paintDots();
+    redraw();
+  }
+  function paintDots() {
+    var box = el("puriFrames");
+    if (!box) return;
+    box.innerHTML = FRAMES.map(function (name) {
+      return "<button type='button' data-frame='" + name + "'" + (name === frameId ? " class='picked'" : "") + "><img alt='' src='" + BASE + "frame-" + name + ".webp'></button>";
+    }).join("");
   }
 
   var placeN = 0;
@@ -592,8 +647,13 @@
   }
 
   function onPointerDown(e) {
-    if (live || !view) return;
-    if (e.target.closest && e.target.closest("#puriHandles")) return;
+    if (!view) return;
+    if (e.target.closest && e.target.closest("#puriHandles, .puri-top, #puriCam, #puriEdit")) return;
+    if (choosing || live) {
+      swipe = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      return;
+    }
     var p = normPoint(e);
     if (p.x < -0.05 || p.y < -0.05 || p.x > 1.05 || p.y > 1.05) return;
     var hit = hitItem(p);
@@ -637,7 +697,7 @@
       redraw();
     } else if (drag.kind === "scale" && items[selected]) {
       var it = items[selected];
-      var dist = Math.hypot(p.x - it.x, (p.y - it.y) / PHOTO_RATIO);
+      var dist = Math.hypot(p.x - it.x, (p.y - it.y) / viewRatio());
       it.w = Math.max(0.08, Math.min(0.9, dist * 2));
       it.h = it.kind === "text" ? it.w * 0.28 : stickerNormH(it.w, it.aspect || 1);
       redraw();
@@ -649,39 +709,86 @@
   }
 
   function onPointerUp(e) {
+    if (swipe && swipe.id === e.pointerId) {
+      var dx = e.clientX - swipe.x;
+      var dy = e.clientY - swipe.y;
+      swipe = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) stepFrame(dx < 0 ? 1 : -1);
+    }
     if (drag && drag.id === e.pointerId) drag = null;
   }
 
-  function buildCols() {
-    var left = el("puriLeft");
-    var right = el("puriRight");
-    if (!left || !right) return;
-    var leftItems = [
-      ["heart", "ハート", "sticker-sukiyo.webp", "tile-heart"],
-      ["star", "スター", "sticker-yellowstar.webp", "tile-star"],
-      ["ribbon", "リボン", "heart-22.webp", "tile-bow"],
-      ["flower", "おはな", "sticker-sakura.webp", "tile-flower"],
-      ["chara", "キャラ", "sticker-bunny.webp", "tile-chara"],
-      ["more", "もっと見る", "chara-08.webp", "tile-more"]
-    ];
-    left.innerHTML = leftItems.map(function (row) {
-      return "<button type='button' class='" + row[3] + "' data-cat='" + row[0] + "'><img alt='' src='" + BASE + row[2] + "'><span>" + row[1] + "</span></button>";
-    }).join("");
-    var rightItems = [
-      ["text", "文字", "icon-text.svg"],
-      ["spark", "きらきら", "icon-spark.svg"],
-      ["filter", "フィルター", "icon-filter.svg"],
-      ["deco", "デコ", "icon-deco.svg"],
-      ["frame", "フレーム", "icon-frame.svg"]
-    ];
-    right.innerHTML = rightItems.map(function (row) {
-      return "<button type='button' class='tile-right' data-tool='" + row[0] + "'><img alt='' src='assets/purikura/" + row[2] + "'><span>" + row[1] + "</span></button>";
-    }).join("");
-    var colors = el("puriColors");
-    if (colors) {
-      colors.innerHTML = COLORS.map(function (c, i) {
-        return "<button type='button' class='swatch" + (i === 0 ? " picked" : "") + "' data-color='" + c[1] + "' style='background:" + c[1] + "' aria-label='" + c[0] + "'></button>";
+  var TABS = [
+    ["seal", "シール", "sticker-sukiyo.webp"],
+    ["moji", "もじ", "stamp-daisuki.webp"],
+    ["pen", "ペン", ""],
+    ["kazari", "かざり", ""],
+    ["hozon", "ほぞん", ""],
+    ["camera", "カメラ", ""]
+  ];
+
+  function tabButton(id, label, icon) {
+    var img = icon ? "<img alt='' src='" + BASE + icon + "'>" : "<span aria-hidden='true'>" + ({ pen: "✎", kazari: "✦", hozon: "↓", camera: "●" }[id] || "●") + "</span>";
+    return "<button type='button' data-tab='" + id + "'>" + img + "<span>" + label + "</span></button>";
+  }
+
+  function buildUi() {
+    var tabs = el("puriTabs");
+    if (tabs) tabs.innerHTML = TABS.map(function (row) { return tabButton(row[0], row[1], row[2]); }).join("");
+    paintDots();
+  }
+
+  function setTab(name, keep) {
+    if (name === "camera") {
+      openTab = "";
+      var camPanel = el("puriPanel");
+      if (camPanel) camPanel.hidden = true;
+      startCamera();
+      return;
+    }
+    var tabs = el("puriTabs");
+    if (!keep && openTab === name) {
+      openTab = "";
+      el("puriPanel").hidden = true;
+      if (tabs) tabs.querySelectorAll("button").forEach(function (b) { b.classList.remove("picked"); });
+      return;
+    }
+    openTab = name;
+    if (tabs) tabs.querySelectorAll("button").forEach(function (b) {
+      b.classList.toggle("picked", b.getAttribute("data-tab") === name);
+    });
+    var panel = el("puriPanel");
+    panel.className = "puri-panel";
+    panel.hidden = false;
+    if (name === "seal") {
+      panel.className = "puri-panel fit";
+      panel.innerHTML = [
+        ["heart", "ハート", "sticker-sukiyo.webp"],
+        ["star", "ほし", "sticker-yellowstar.webp"],
+        ["ribbon", "りぼん", "heart-22.webp"],
+        ["flower", "はな", "sticker-sakura.webp"],
+        ["chara", "うさぎ", "sticker-bunny.webp"]
+      ].map(function (row) {
+        return "<button type='button' data-cat='" + row[0] + "'><img alt='' src='" + BASE + row[2] + "'><span>" + row[1] + "</span></button>";
       }).join("");
+    } else if (name === "moji") {
+      panel.innerHTML = STAMPS.map(function (src) {
+        return "<button type='button' data-sticker='" + src + "'><img alt='' src='" + BASE + src + "'></button>";
+      }).join("");
+    } else if (name === "pen") {
+      mode = "draw";
+      var sizes = [["0.008", "ほそい"], ["0.016", "ふつう"], ["0.03", "ふとい"]];
+      panel.innerHTML = sizes.map(function (s) {
+        return "<button type='button' data-size='" + s[0] + "'" + (pen.size === Number(s[0]) ? " class='picked'" : "") + ">" + s[1] + "</button>";
+      }).join("") + COLORS.map(function (c) {
+        return "<button type='button' class='swatch" + (pen.color === c[1] ? " picked" : "") + "' data-color='" + c[1] + "' style='background:" + c[1] + "' aria-label='" + c[0] + "'></button>";
+      }).join("") + "<button type='button' id='puriEraser'>けす</button><button type='button' id='puriUndo'>もどす</button>";
+    } else if (name === "kazari") {
+      panel.innerHTML = FILTERS.map(function (row) {
+        return "<button type='button' data-filter='" + row[0] + "'" + (filterId === row[0] ? " class='picked'" : "") + ">" + row[1] + "</button>";
+      }).join("") + "<button type='button' id='puriSpark'" + (glitter ? " class='picked'" : "") + ">きらきら</button>";
+    } else if (name === "hozon") {
+      panel.innerHTML = "<button type='button' class='puri-big' id='puriSaveNow'>ほぞん</button><button type='button' class='puri-big' id='puriPrintNow'>プリント</button>";
     }
   }
 
@@ -695,7 +802,7 @@
     tray = el("puriTray");
     handles = el("puriHandles");
     if (!stage || !view) return;
-    buildCols();
+    buildUi();
     preload();
     stage.addEventListener("pointerdown", onPointerDown);
     stage.addEventListener("pointermove", onPointerMove);
@@ -706,61 +813,60 @@
         if (e.cancelable) e.preventDefault();
       }, { passive: false });
     });
-    el("puriLeft").addEventListener("click", function (e) {
-      var btn = e.target.closest("[data-cat]");
-      if (!btn) return;
-      mode = "move";
-      openCat(btn.getAttribute("data-cat"));
-    });
-    el("puriRight").addEventListener("click", function (e) {
-      var btn = e.target.closest("[data-tool]");
-      if (!btn) return;
-      var tool = btn.getAttribute("data-tool");
-      if (tool === "text") openText();
-      else if (tool === "spark") { glitter = !glitter; if (glitter) loop(); redraw(); }
-      else if (tool === "filter") openFilters();
-      else if (tool === "deco") { deco = !deco; redraw(); }
-      else if (tool === "frame") openFrames();
-    });
-    tray.addEventListener("click", function (e) {
-      var sticker = e.target.closest("[data-sticker]");
-      var stamp = e.target.closest("[data-stamp]");
-      var filter = e.target.closest("[data-filter]");
+    el("puriFrames").addEventListener("click", function (e) {
       var frame = e.target.closest("[data-frame]");
-      if (sticker) addSticker(sticker.getAttribute("data-sticker"));
-      if (stamp) addText(TEXTS[Number(stamp.getAttribute("data-stamp"))][0], TEXTS[Number(stamp.getAttribute("data-stamp"))][1]);
-      if (filter) { filterId = filter.getAttribute("data-filter"); hideTray(); redraw(); }
-      if (frame) { frameId = frame.getAttribute("data-frame"); hideTray(); redraw(); }
+      if (!frame) return;
+      frameId = frame.getAttribute("data-frame");
+      paintDots();
+      redraw();
     });
-    el("puriColors").addEventListener("click", function (e) {
-      var btn = e.target.closest("[data-color]");
-      if (!btn) return;
-      pen.color = btn.getAttribute("data-color");
-      pen.erase = false;
-      mode = "draw";
-      el("puriColors").querySelectorAll(".swatch").forEach(function (s) { s.classList.toggle("picked", s === btn); });
+    el("puriTabs").addEventListener("click", function (e) {
+      var tab = e.target.closest("[data-tab]");
+      if (!tab) return;
+      setTab(tab.getAttribute("data-tab"));
     });
-    document.querySelector(".puri-pen").addEventListener("click", function (e) {
-      var btn = e.target.closest("button");
-      if (!btn) return;
-      if (btn.hasAttribute("data-size")) {
-        pen.size = Number(btn.getAttribute("data-size"));
-        pen.erase = false;
-        mode = "draw";
-        document.querySelectorAll(".puri-pen [data-size]").forEach(function (b) { b.classList.toggle("picked", b === btn); });
-      } else if (btn.id === "puriGlitterPen") {
-        pen.glitter = !pen.glitter;
-        pen.erase = false;
-        mode = "draw";
-        btn.classList.toggle("picked", pen.glitter);
-      } else if (btn.id === "puriEraser") {
-        pen.erase = !pen.erase;
-        mode = "draw";
-        btn.classList.toggle("picked", pen.erase);
-      } else if (btn.id === "puriUndo") {
-        inkStrokes.pop();
-        redraw();
+    el("puriPanel").addEventListener("click", function (e) {
+      var cat = e.target.closest("[data-cat]");
+      var sticker = e.target.closest("[data-sticker]");
+      var filter = e.target.closest("[data-filter]");
+      var color = e.target.closest("[data-color]");
+      var size = e.target.closest("[data-size]");
+      if (cat) {
+        mode = "move";
+        var names = CATS[cat.getAttribute("data-cat")] || [];
+        el("puriPanel").innerHTML = names.map(function (name) {
+          return "<button type='button' data-sticker='" + name + "'><img alt='' src='" + BASE + name + "'></button>";
+        }).join("") + "<button type='button' data-back='seal'>もどる</button>";
+        return;
       }
+      if (e.target.closest("[data-back]")) { setTab("seal", true); return; }
+      if (sticker) { addSticker(sticker.getAttribute("data-sticker")); return; }
+      if (filter) { filterId = filter.getAttribute("data-filter"); setTab("kazari", true); redraw(); return; }
+      if (color) {
+        pen.color = color.getAttribute("data-color");
+        pen.erase = false;
+        mode = "draw";
+        setTab("pen", true);
+        return;
+      }
+      if (size) {
+        pen.size = Number(size.getAttribute("data-size"));
+        pen.erase = false;
+        mode = "draw";
+        setTab("pen", true);
+        return;
+      }
+      if (e.target.closest("#puriEraser")) { pen.erase = !pen.erase; mode = "draw"; setTab("pen", true); return; }
+      if (e.target.closest("#puriUndo")) { inkStrokes.pop(); redraw(); return; }
+      if (e.target.closest("#puriSpark")) {
+        glitter = !glitter;
+        if (glitter) loop();
+        setTab("kazari", true);
+        redraw();
+        return;
+      }
+      if (e.target.closest("#puriSaveNow")) { var saveBtn = el("savePlay"); if (saveBtn) saveBtn.click(); return; }
+      if (e.target.closest("#puriPrintNow")) { printSheet(); }
     });
     handles.addEventListener("pointerdown", function (e) {
       var btn = e.target.closest("[data-h]");
@@ -785,39 +891,12 @@
     });
     handles.addEventListener("pointermove", onPointerMove);
     handles.addEventListener("pointerup", onPointerUp);
-    var form = el("puriTextForm");
-    if (form) form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var input = el("puriTextInput");
-      addText(input.value, pen.color);
-      input.value = "";
-      form.hidden = true;
-    });
-    var textBtn = el("puriText");
-    if (textBtn) textBtn.addEventListener("click", function () {
-      mode = "move";
-      openText();
-    });
-    var sparkBtn = el("puriSpark");
-    if (sparkBtn) sparkBtn.addEventListener("click", function () {
-      glitter = !glitter;
-      sparkBtn.classList.toggle("picked", glitter);
-      if (glitter) loop();
-      redraw();
-    });
-    var filterBtn = el("puriFilter");
-    if (filterBtn) filterBtn.addEventListener("click", openFilters);
     var printBtn = el("puriPrint");
     if (printBtn) printBtn.addEventListener("click", printSheet);
     var homeBtn = el("puriHome");
     if (homeBtn) homeBtn.addEventListener("click", function () {
       var back = el("playBack");
       if (back) back.click();
-    });
-    var gear = el("puriGear");
-    if (gear) gear.addEventListener("click", function () {
-      deco = !deco;
-      redraw();
     });
     window.addEventListener("resize", redraw);
     if (document.fonts && document.fonts.load) {
@@ -873,7 +952,7 @@
       var crop = coverCrop(sw, sh);
       resizeTo(crop.dw, crop.dh);
       photo.getContext("2d").drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, photo.width, photo.height);
-      showStill();
+      showEdit();
       redraw();
     };
     img.onerror = function () { URL.revokeObjectURL(url); };
@@ -888,11 +967,21 @@
     frameId = "pink";
     glitter = false;
     deco = false;
-    hideTray();
-    resizeTo(1440, 1920);
+    openTab = "";
+    var panel = el("puriPanel");
+    if (panel) panel.hidden = true;
+    var size = standSize();
+    resizeTo(size.w, size.h);
     drawCute(photo.getContext("2d"), photo.width, photo.height);
-    showStill();
-    requestAnimationFrame(redraw);
+    showChoose();
+    requestAnimationFrame(function () {
+      var again = standSize();
+      if (again.w !== photo.width || again.h !== photo.height) {
+        resizeTo(again.w, again.h);
+        drawCute(photo.getContext("2d"), photo.width, photo.height);
+      }
+      redraw();
+    });
   }
 
   document.addEventListener("DOMContentLoaded", wire);

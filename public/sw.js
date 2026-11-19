@@ -1,4 +1,4 @@
-var CACHE = "emma-shell-20261118j";
+var CACHE = "emma-shell-20261119a";
 var CORE = [
   "/",
   "/index.html",
