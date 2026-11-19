@@ -118,9 +118,31 @@
   var USERS_KEY = "emma-users-v1";
   var BOOK_CAP = 10;
 
+  function storeGet(key) {
+    if (window.EmmaStore) {
+      var saved = EmmaStore.get(key);
+      if (saved != null) return saved;
+    }
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function storeSet(key, value) {
+    if (window.EmmaStore) EmmaStore.set(key, value);
+    else {
+      try { localStorage.setItem(key, value); } catch (e) {}
+    }
+  }
+
+  function storeRemove(key) {
+    if (window.EmmaStore) EmmaStore.remove(key);
+    else {
+      try { localStorage.removeItem(key); } catch (e) {}
+    }
+  }
+
   function readUsers() {
     var list = [];
-    try { list = JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch (e) { list = []; }
+    try { list = JSON.parse(storeGet(USERS_KEY) || "[]"); } catch (e) { list = []; }
     if (!Array.isArray(list)) list = [];
     var out = [];
     var seen = {};
@@ -141,7 +163,7 @@
 
   function saveUsers(list) {
     try {
-      localStorage.setItem(USERS_KEY, JSON.stringify(list.map(function (u) {
+      storeSet(USERS_KEY, JSON.stringify(list.map(function (u) {
         return { id: u.id, name: String(u.name || "").slice(0, 12), builtin: u.builtin || "" };
       })));
     } catch (e) {}
@@ -159,7 +181,7 @@
 
   function profileId() {
     var w = "";
-    try { w = localStorage.getItem(GATE_KEY) || ""; } catch (e) { w = ""; }
+    w = storeGet(GATE_KEY) || "";
     if (w === "emma") return GATE_HASH.emma;
     if (w === "guest") return GATE_HASH.guest;
     if (!/^[0-9a-f]{64}$/.test(w)) return "";
@@ -246,8 +268,8 @@
   function loadProgress() {
     var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, worksheetIndex: 0, remember: [], mute: false, bgmPaused: true };
     try {
-      var raw = localStorage.getItem(progressKey());
-      if (!raw) raw = localStorage.getItem(legacyProgressKey(profileId())) || "";
+      var raw = storeGet(progressKey());
+      if (!raw) raw = storeGet(legacyProgressKey(profileId())) || "";
       var p = JSON.parse(raw || "{}");
       base.sessions = Number(p.sessions) || 0;
       base.kanjiIndex = Number(p.kanjiIndex) || 0;
@@ -267,7 +289,7 @@
 
   function saveProgress() {
     try {
-      localStorage.setItem(progressKey(), JSON.stringify(progress));
+      storeSet(progressKey(), JSON.stringify(progress));
     } catch (e) {}
   }
 
@@ -297,7 +319,7 @@
 
   function loadBook() {
     try {
-      var raw = JSON.parse(localStorage.getItem(bookKey()) || "");
+      var raw = JSON.parse(storeGet(bookKey()) || "");
       if (!raw || typeof raw !== "object") return emptyBook();
       if (!raw.kanji || typeof raw.kanji !== "object") raw.kanji = {};
       if (!raw.facts || typeof raw.facts !== "object") raw.facts = {};
@@ -309,7 +331,7 @@
 
   function saveBook(book) {
     try {
-      localStorage.setItem(bookKey(), JSON.stringify(book));
+      storeSet(bookKey(), JSON.stringify(book));
       return true;
     } catch (e) {
       return false;
@@ -527,6 +549,7 @@
   }
 
   function showOnly(name) {
+    if (gateEl) gateEl.hidden = true;
     home.hidden = name !== "home";
     var shell = document.querySelector(".card");
     if (shell) shell.hidden = name === "home";
@@ -2735,8 +2758,8 @@ soonEl.hidden = true;
           }
           var next = readUsers().filter(function (x) { return x.id !== u.id; });
           saveUsers(next);
-          try { localStorage.removeItem("emma-progress-" + u.id); } catch (e) {}
-          try { localStorage.removeItem("emma-book-" + u.id); } catch (e) {}
+          storeRemove("emma-progress-" + u.id);
+          storeRemove("emma-book-" + u.id);
           try { sessionStorage.removeItem("emma-active-" + u.id); } catch (e2) {}
           if (msg) msg.textContent = "けしたよ";
           renderParent();
@@ -2812,11 +2835,70 @@ soonEl.hidden = true;
   if (bookTabKanji) bookTabKanji.addEventListener("click", function () { renderBook("kanji"); });
   if (bookTabMath) bookTabMath.addEventListener("click", function () { renderBook("math"); });
   var parentBtn = document.getElementById("parentBtn");
+  function refreshPersist() {
+    var status = document.getElementById("persistStatus");
+    var hint = document.getElementById("installHint");
+    if (!status || !window.EmmaStore) return;
+    var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone;
+    if (hint) {
+      hint.textContent = standalone
+        ? "アプリで ひらいてるよ。きろくは この ホームがめんに のこるよ。"
+        : "ホームがめんに ついか: iPhoneは 共有 → ホーム画面に追加。そうすると きろくが きえないよ。";
+    }
+    EmmaStore.askPersist().then(function () { return EmmaStore.persisted(); }).then(function (yes) {
+      status.textContent = yes ? "きおく: まもってる" : "きおく: ブラウザが けすかも。ホームがめんに ついかしてね";
+    });
+  }
+
+  function downloadBackup() {
+    if (!window.EmmaStore) return;
+    var blob = new Blob([JSON.stringify(EmmaStore.snapshot())], { type: "application/json" });
+    var file = new File([blob], "emma-backup.json", { type: "application/json" });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: "エマのバックアップ" }).catch(function () {});
+      return;
+    }
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "emma-backup.json";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+
+  function restoreBackup(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data = null;
+      try { data = JSON.parse(String(reader.result || "")); } catch (e) { data = null; }
+      var msg = document.getElementById("parentMsg");
+      if (!window.EmmaStore || !EmmaStore.restore(data)) {
+        if (msg) msg.textContent = "この ファイルは つかえないよ";
+        return;
+      }
+      if (msg) msg.textContent = "もどしたよ";
+      setTimeout(function () { location.reload(); }, 400);
+    };
+    reader.readAsText(file);
+  }
+
   if (parentBtn) parentBtn.addEventListener("click", function () {
     if (!isMainProfile()) return;
     showOnly("parent");
     renderParent();
+    refreshPersist();
   });
+  var backupBtn = document.getElementById("backupBtn");
+  if (backupBtn) backupBtn.addEventListener("click", downloadBackup);
+  var restoreBtn = document.getElementById("restoreBtn");
+  var restoreFile = document.getElementById("restoreFile");
+  if (restoreBtn && restoreFile) {
+    restoreBtn.addEventListener("click", function () { restoreFile.click(); });
+    restoreFile.addEventListener("change", function () {
+      var picked = restoreFile.files && restoreFile.files[0];
+      restoreFile.value = "";
+      if (picked) restoreBackup(picked);
+    });
+  }
   var parentBack = document.getElementById("parentBack");
   if (parentBack) parentBack.addEventListener("click", showHome);
   var parentAdd = document.getElementById("parentAdd");
@@ -2947,7 +3029,7 @@ soonEl.hidden = true;
   }
 
   function enterApp(id) {
-    try { localStorage.setItem(GATE_KEY, id); } catch (e) {}
+    storeSet(GATE_KEY, id);
     if (gateEl) gateEl.hidden = true;
     progress = loadProgress();
     active = null;
@@ -2958,7 +3040,7 @@ soonEl.hidden = true;
 
   function logout() {
     cancelReward();
-    try { localStorage.removeItem(GATE_KEY); } catch (e) {}
+    storeRemove(GATE_KEY);
     active = null;
     EmmaSound.stopSong();
     kanjiMusicOff();
@@ -3020,6 +3102,16 @@ soonEl.hidden = true;
     showHome();
   } else {
     showGate();
+  }
+  if (window.EmmaStore) {
+    EmmaStore.whenReady(function (changed) {
+      if (!changed) return;
+      progress = loadProgress();
+      ensureUsers();
+      if (profileId() && document.body.dataset.screen === "gate") showHome();
+      if (document.body.dataset.screen === "parent") renderParent();
+      if (document.body.dataset.screen === "book") renderBook("kanji");
+    });
   }
   window.addEventListener("resize", fitHome);
   if (!TEST_MODE && "serviceWorker" in navigator) {

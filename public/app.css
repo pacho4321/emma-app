@@ -884,7 +884,18 @@ button:focus-visible { outline: 3px solid #2a2140; outline-offset: 2px; }
 }
 .fact-mark { color: #0b8f6a; }
 .fact-mark.great { color: #e2186a; }
-#parent { align-items: center; justify-content: flex-start; }
+#parent { align-items: center; justify-content: flex-start; gap: 6px; }
+.parent-keep {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 10px;
+  text-align: left;
+}
+.parent-hint { margin: 0; font-size: 14px; font-weight: 800; line-height: 1.35; color: #5a3d78; }
 .parent-lead, .parent-msg, .digit-debug { margin: 0; font-weight: 900; min-height: 1.2em; }
 .digit-debug { font-size: 14px; color: #6a4d88; }
 .parent-input {
