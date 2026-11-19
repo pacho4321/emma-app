@@ -195,6 +195,7 @@
       <div class="parent-keep">
         <p class="parent-lead">きおく</p>
         <p id="persistStatus" class="parent-msg">きおく: かくにんちゅう</p>
+        <p id="cloudStatus" class="parent-msg">クラウド: かくにんちゅう</p>
         <p id="installHint" class="parent-hint">ホームがめんに ついか: iPhoneは 共有 → ホーム画面に追加。そうすると きろくが きえないよ。</p>
         <button type="button" id="backupBtn" class="btn green">バックアップ</button>
         <button type="button" id="restoreBtn" class="btn blue">ファイルから もどす</button>
@@ -212,6 +213,11 @@
   </main>
 
   <script src="store.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="cloud.js"></script>
   <script src="curriculum.js"></script>
   <script src="strokes.js"></script>
   <script src="sound.js"></script>

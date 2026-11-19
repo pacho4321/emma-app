@@ -131,6 +131,7 @@
     else {
       try { localStorage.setItem(key, value); } catch (e) {}
     }
+    if (window.EmmaCloud && EmmaCloud.noteLocalWrite) EmmaCloud.noteLocalWrite(key);
   }
 
   function storeRemove(key) {
@@ -289,6 +290,7 @@
 
   function saveProgress() {
     try {
+      progress.updatedAt = Date.now();
       storeSet(progressKey(), JSON.stringify(progress));
     } catch (e) {}
   }
@@ -331,6 +333,7 @@
 
   function saveBook(book) {
     try {
+      book.updatedAt = Date.now();
       storeSet(bookKey(), JSON.stringify(book));
       return true;
     } catch (e) {
@@ -345,7 +348,7 @@
       if (row.length > BOOK_CAP) book.kanji[id] = row.slice(row.length - BOOK_CAP);
       book.kanji[id] = book.kanji[id].map(function (cell) {
         if (!cell || !cell.img) return null;
-        return { img: cell.img, stamp: cell.stamp === "hanamaru" ? "hanamaru" : "maru" };
+        return { img: cell.img, stamp: cell.stamp === "hanamaru" ? "hanamaru" : "maru", t: Number(cell.t) || 0 };
       }).filter(Boolean);
       if (!book.kanji[id].length) delete book.kanji[id];
     });
@@ -367,7 +370,7 @@
     if (!view || view.kind !== "kanji" || !profileId()) return;
     var book = loadBook();
     if (!book.kanji[view.id]) book.kanji[view.id] = [];
-    book.kanji[view.id].push({ img: thumbOf(canvas), stamp: stamp === "hanamaru" ? "hanamaru" : "maru" });
+    book.kanji[view.id].push({ img: thumbOf(canvas), stamp: stamp === "hanamaru" ? "hanamaru" : "maru", t: Date.now() });
     shrinkBook(book);
     if (!saveBook(book)) {
       var row = book.kanji[view.id] || [];
@@ -389,6 +392,7 @@
     prev.stamp = stamp === "hanamaru" || prev.stamp === "hanamaru" ? "hanamaru" : "maru";
     prev.mode = mode;
     prev.id = view.id;
+    prev.t = Date.now();
     book.facts[key] = prev;
     saveBook(book);
   }
@@ -2835,6 +2839,12 @@ soonEl.hidden = true;
   if (bookTabKanji) bookTabKanji.addEventListener("click", function () { renderBook("kanji"); });
   if (bookTabMath) bookTabMath.addEventListener("click", function () { renderBook("math"); });
   var parentBtn = document.getElementById("parentBtn");
+  function refreshCloud() {
+    var el = document.getElementById("cloudStatus");
+    if (!el || !window.EmmaCloud) return;
+    el.textContent = EmmaCloud.status().message;
+  }
+
   function refreshPersist() {
     var status = document.getElementById("persistStatus");
     var hint = document.getElementById("installHint");
@@ -2886,6 +2896,7 @@ soonEl.hidden = true;
     showOnly("parent");
     renderParent();
     refreshPersist();
+    refreshCloud();
   });
   var backupBtn = document.getElementById("backupBtn");
   if (backupBtn) backupBtn.addEventListener("click", downloadBackup);
@@ -3036,6 +3047,13 @@ soonEl.hidden = true;
     applySoundFlags();
     showHome();
     EmmaSound.playOpening();
+    if (window.EmmaCloud && EmmaCloud.pullAndMerge) {
+      EmmaCloud.pullAndMerge(id).then(function () {
+        progress = loadProgress();
+        applySoundFlags();
+        if (document.body.dataset.screen === "home") showHome();
+      });
+    }
   }
 
   function logout() {
@@ -3103,14 +3121,28 @@ soonEl.hidden = true;
   } else {
     showGate();
   }
+  function rehydrateFromStore() {
+    progress = loadProgress();
+    ensureUsers();
+    if (profileId() && document.body.dataset.screen === "gate") showHome();
+    if (document.body.dataset.screen === "parent") renderParent();
+    if (document.body.dataset.screen === "book") renderBook("kanji");
+    refreshCloud();
+  }
+
+  if (window.EmmaCloud) {
+    EmmaCloud.setProfile(profileId);
+    EmmaCloud.setName(function (id) {
+      var user = userById(id);
+      return user ? user.name : "";
+    });
+    EmmaCloud.onStatus(refreshCloud);
+  }
   if (window.EmmaStore) {
     EmmaStore.whenReady(function (changed) {
-      if (!changed) return;
-      progress = loadProgress();
-      ensureUsers();
-      if (profileId() && document.body.dataset.screen === "gate") showHome();
-      if (document.body.dataset.screen === "parent") renderParent();
-      if (document.body.dataset.screen === "book") renderBook("kanji");
+      if (changed) rehydrateFromStore();
+      if (window.EmmaCloud) EmmaCloud.start().then(rehydrateFromStore);
+      else refreshCloud();
     });
   }
   window.addEventListener("resize", fitHome);
