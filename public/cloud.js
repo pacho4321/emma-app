@@ -164,14 +164,23 @@
       (list || []).forEach(function (kid) {
         if (!kid || typeof kid.id !== "string" || !/^[0-9a-f]{64}$/.test(kid.id)) return;
         var prev = map[kid.id];
-        var t = Number(kid.t) || 0;
+        var t = Number(kid.t) || Number(kid.avatarAt) || 0;
+        var avatarAt = Math.max(Number(kid.avatarAt) || 0, prev ? (Number(prev.avatarAt) || 0) : 0);
+        var avatar = (Number(kid.avatarAt) || 0) >= (prev ? (Number(prev.avatarAt) || 0) : 0)
+          ? (kid.avatar || (prev && prev.avatar) || "")
+          : ((prev && prev.avatar) || kid.avatar || "");
         if (!prev || t >= (prev.t || 0)) {
           map[kid.id] = {
             id: kid.id,
-            name: String(kid.name || prev && prev.name || "なまえ").slice(0, 12),
+            name: String(kid.name || (prev && prev.name) || "なまえ").slice(0, 12),
             builtin: kid.builtin || (prev && prev.builtin) || "",
+            avatar: String(avatar || "").slice(0, 20),
+            avatarAt: avatarAt,
             t: Math.max(t, prev ? (prev.t || 0) : 0)
           };
+        } else if (avatar) {
+          prev.avatar = String(avatar).slice(0, 20);
+          prev.avatarAt = avatarAt;
         }
       });
     }
@@ -208,15 +217,26 @@
     if (stickerText) EmmaStore.set("emma-stickers-" + id, stickerText);
   }
 
+  function localUser(id) {
+    if (!window.EmmaStore) return null;
+    var list = parseJson(EmmaStore.get("emma-users-v1"));
+    if (!Array.isArray(list)) return null;
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
+    return null;
+  }
+
   function payload(id) {
     var progress = parseJson(localProgress(id)) || {};
     var book = parseJson(localBook(id)) || { kanji: {}, facts: {} };
     var stickers = parseJson(localStickers(id)) || { frame: "", items: [], updatedAt: 0 };
+    var user = localUser(id) || {};
     var now = Date.now();
     if (!progress.updatedAt) progress.updatedAt = now;
     return {
       profileId: id,
-      name: String(nameFn(id) || "").slice(0, 12),
+      name: String(user.name || nameFn(id) || "").slice(0, 12),
+      avatar: String(user.avatar || "").slice(0, 20),
+      avatarAt: Number(user.avatarAt) || 0,
       updatedAt: now,
       progress: progress,
       book: book,
@@ -235,11 +255,16 @@
     var bookText = mergeBook(localBook(id), data.book || null);
     var stickerText = mergeStickers(localStickers(id), data.stickers || null);
     writeLocal(id, progressText, bookText, stickerText);
-    if (data.name && window.EmmaStore) {
+    if (window.EmmaStore && (data.name || data.avatar)) {
       var raw = parseJson(EmmaStore.get("emma-users-v1"));
       if (Array.isArray(raw)) {
         raw.forEach(function (user) {
-          if (user && user.id === id && data.name) user.name = String(data.name).slice(0, 12);
+          if (!user || user.id !== id) return;
+          if (data.name) user.name = String(data.name).slice(0, 12);
+          if (data.avatar && (Number(data.avatarAt) || 0) >= (Number(user.avatarAt) || 0)) {
+            user.avatar = String(data.avatar).slice(0, 20);
+            user.avatarAt = Number(data.avatarAt) || 0;
+          }
         });
         EmmaStore.set("emma-users-v1", JSON.stringify(raw));
       }
@@ -300,7 +325,13 @@
         var remoteKids = snap.exists && snap.data() ? snap.data().kids : [];
         var kids = mergeKids(list, remoteKids);
         EmmaStore.set("emma-users-v1", JSON.stringify(kids.map(function (kid) {
-          return { id: kid.id, name: kid.name, builtin: kid.builtin || "" };
+          return {
+            id: kid.id,
+            name: kid.name,
+            builtin: kid.builtin || "",
+            avatar: kid.avatar || "",
+            avatarAt: Number(kid.avatarAt) || 0
+          };
         })));
         return ref.set({ updatedAt: Date.now(), kids: kids }, { merge: true });
       });

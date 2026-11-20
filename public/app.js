@@ -151,7 +151,13 @@
       if (!u || typeof u.id !== "string" || !/^[0-9a-f]{64}$/.test(u.id)) return;
       if (seen[u.id]) return;
       seen[u.id] = true;
-      out.push({ id: u.id, name: String(u.name || "なまえ").slice(0, 12), builtin: u.builtin || "" });
+      out.push({
+        id: u.id,
+        name: String(u.name || "なまえ").slice(0, 12),
+        builtin: u.builtin || "",
+        avatar: typeof u.avatar === "string" ? u.avatar : "",
+        avatarAt: Number(u.avatarAt) || 0
+      });
     });
     if (!seen[GATE_HASH.emma]) out.unshift({ id: GATE_HASH.emma, name: "エマ", builtin: "main" });
     if (!seen[GATE_HASH.guest]) out.push({ id: GATE_HASH.guest, name: "ゲスト", builtin: "guest" });
@@ -165,7 +171,13 @@
   function saveUsers(list) {
     try {
       storeSet(USERS_KEY, JSON.stringify(list.map(function (u) {
-        return { id: u.id, name: String(u.name || "").slice(0, 12), builtin: u.builtin || "" };
+        return {
+          id: u.id,
+          name: String(u.name || "").slice(0, 12),
+          builtin: u.builtin || "",
+          avatar: typeof u.avatar === "string" ? u.avatar : "",
+          avatarAt: Number(u.avatarAt) || 0
+        };
       })));
     } catch (e) {}
   }
@@ -178,6 +190,58 @@
     var users = readUsers();
     for (var i = 0; i < users.length; i++) if (users[i].id === id) return users[i];
     return null;
+  }
+
+  var AVATARS = [
+    ["bunny", "うさぎ", "assets/avatars/bunny.webp"],
+    ["cat", "ねこ", "assets/avatars/cat.webp"],
+    ["bear", "くま", "assets/avatars/bear.webp"],
+    ["princess", "おひめさま", "assets/avatars/princess.webp"],
+    ["cupcake", "ケーキ", "assets/avatars/cupcake.webp"],
+    ["unicorn", "ゆに", "assets/avatars/unicorn.webp"],
+    ["chick", "ひよこ", "assets/avatars/chick.webp"],
+    ["fox", "きつね", "assets/avatars/fox.webp"]
+  ];
+
+  function avatarIdOf(user) {
+    var chosen = user && user.avatar;
+    for (var i = 0; i < AVATARS.length; i++) if (AVATARS[i][0] === chosen) return chosen;
+    if (user && user.builtin === "guest") return "cupcake";
+    if (user && user.builtin === "main") return "bunny";
+    var n = 0;
+    var id = user && user.id || "";
+    if (id.length >= 2) n = parseInt(id.slice(0, 2), 16) || 0;
+    return AVATARS[(n % (AVATARS.length - 2)) + 2][0];
+  }
+
+  function avatarSrc(user) {
+    var id = avatarIdOf(user);
+    for (var i = 0; i < AVATARS.length; i++) if (AVATARS[i][0] === id) return AVATARS[i][2];
+    return AVATARS[0][2];
+  }
+
+  function escapeHtml(text) {
+    return String(text || "").replace(/[&<>"']/g, function (ch) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch];
+    });
+  }
+
+  var KNOWN_KEY = "emma-known-v1";
+  function knownIds() {
+    var list = [];
+    try { list = JSON.parse(storeGet(KNOWN_KEY) || "[]"); } catch (e) { list = []; }
+    return Array.isArray(list) ? list : [];
+  }
+
+  function rememberProfile(id) {
+    if (!id) return;
+    var list = knownIds();
+    if (list.indexOf(id) < 0) list.push(id);
+    storeSet(KNOWN_KEY, JSON.stringify(list));
+  }
+
+  function profileRemembered(id) {
+    return knownIds().indexOf(id) >= 0;
   }
 
   function profileId() {
@@ -553,6 +617,12 @@
   }
 
   function showOnly(name) {
+    var profiles = document.getElementById("profiles");
+    if (profiles) profiles.hidden = true;
+    var pick = document.getElementById("avatarPick");
+    if (pick && name !== "home" && name !== "parent") pick.hidden = true;
+    var veil = document.getElementById("loadVeil");
+    if (veil && name !== "home") veil.hidden = true;
     if (gateEl) gateEl.hidden = true;
     home.hidden = name !== "home";
     var shell = document.querySelector(".card");
@@ -618,6 +688,57 @@
     stage.style.transform = "scale(" + s + ")";
   }
 
+  function renderProfiles() {
+    var grid = document.getElementById("profileGrid");
+    if (!grid) return;
+    var users = readUsers();
+    grid.classList.toggle("few", users.length <= 3);
+    grid.innerHTML = users.map(function (user) {
+      return "<button type='button' class='profile-card' data-profile='" + user.id + "'><img alt='' src='" + avatarSrc(user) + "'><span>" + escapeHtml(user.name) + "</span></button>";
+    }).join("");
+  }
+
+  function showProfiles() {
+    cancelReward();
+    stopPlayTimer();
+    stopCamera();
+    EmmaSound.stopSong();
+    var profiles = document.getElementById("profiles");
+    if (profiles) profiles.hidden = false;
+    if (gateEl) gateEl.hidden = true;
+    var pick = document.getElementById("avatarPick");
+    if (pick) pick.hidden = true;
+    var veil = document.getElementById("loadVeil");
+    if (veil) veil.hidden = true;
+    home.hidden = true;
+    var shell = document.querySelector(".card");
+    if (shell) shell.hidden = true;
+    if (play) play.hidden = true;
+    if (study) study.hidden = true;
+    if (done) done.hidden = true;
+    var book = document.getElementById("book");
+    var parent = document.getElementById("parent");
+    if (book) book.hidden = true;
+    if (parent) parent.hidden = true;
+    document.body.dataset.screen = "profiles";
+    renderProfiles();
+  }
+
+  function showLoading(user) {
+    var veil = document.getElementById("loadVeil");
+    var img = document.getElementById("loadAvatar");
+    if (img && user) img.src = avatarSrc(user);
+    if (veil) veil.hidden = false;
+    var profiles = document.getElementById("profiles");
+    if (profiles) profiles.hidden = true;
+    if (gateEl) gateEl.hidden = true;
+  }
+
+  function hideLoading() {
+    var veil = document.getElementById("loadVeil");
+    if (veil) veil.hidden = true;
+  }
+
   function showHome() {
     cancelReward();
     stopPlayTimer();
@@ -626,6 +747,9 @@
     kanjiMusicOff();
     showOnly("home");
     updateParentButton();
+    var mine = document.querySelector("#myAvatar img");
+    var me = userById(profileId());
+    if (mine && me) mine.src = avatarSrc(me);
     fitHome();
   }
 
@@ -2747,6 +2871,16 @@ soonEl.hidden = true;
     readUsers().forEach(function (u) {
       var row = document.createElement("div");
       row.className = "parent-row";
+      var face = document.createElement("button");
+      face.type = "button";
+      face.className = "parent-avatar";
+      face.setAttribute("aria-label", "かお");
+      var faceImg = document.createElement("img");
+      faceImg.alt = "";
+      faceImg.src = avatarSrc(u);
+      face.appendChild(faceImg);
+      face.addEventListener("click", function () { openAvatarPicker(u.id); });
+      row.appendChild(face);
       var name = document.createElement("span");
       name.textContent = u.name + (u.builtin === "main" ? "（メイン）" : (u.builtin === "guest" ? "（ゲスト）" : ""));
       row.appendChild(name);
@@ -3027,8 +3161,14 @@ soonEl.hidden = true;
     gateDots.textContent = dots;
   }
 
-  function showGate() {
+  var pendingProfile = "";
+
+  function showGate(id) {
+    pendingProfile = id || "";
+    var user = userById(pendingProfile);
     if (gateEl) gateEl.hidden = false;
+    var profiles = document.getElementById("profiles");
+    if (profiles) profiles.hidden = true;
     home.hidden = true;
     var shell = document.querySelector(".card");
     if (shell) shell.hidden = true;
@@ -3036,23 +3176,35 @@ soonEl.hidden = true;
     gateCode = "";
     renderGate();
     if (gateMsg) gateMsg.textContent = "";
+    var lead = document.getElementById("gateLead");
+    if (lead) lead.textContent = user ? (user.name + "の あいことば") : "あいことば";
+    var face = document.getElementById("gateAvatar");
+    if (face && user) face.src = avatarSrc(user);
     fitHome();
   }
 
   function enterApp(id) {
+    rememberProfile(id);
     storeSet(GATE_KEY, id);
-    if (gateEl) gateEl.hidden = true;
+    var user = userById(id);
     progress = loadProgress();
     active = null;
-    applySoundFlags();
-    showHome();
-    EmmaSound.playOpening();
-    if (window.EmmaCloud && EmmaCloud.pullAndMerge) {
-      EmmaCloud.pullAndMerge(id).then(function () {
-        progress = loadProgress();
-        applySoundFlags();
-        if (document.body.dataset.screen === "home") showHome();
-      });
+    showLoading(user);
+    var started = Date.now();
+    function finishEnter() {
+      progress = loadProgress();
+      applySoundFlags();
+      var wait = Math.max(0, 700 - (Date.now() - started));
+      setTimeout(function () {
+        hideLoading();
+        showHome();
+        EmmaSound.playOpening();
+      }, wait);
+    }
+    if (window.EmmaCloud && EmmaCloud.pullAndMerge && navigator.onLine !== false) {
+      EmmaCloud.pullAndMerge(id).then(finishEnter, finishEnter);
+    } else {
+      finishEnter();
     }
   }
 
@@ -3062,7 +3214,7 @@ soonEl.hidden = true;
     active = null;
     EmmaSound.stopSong();
     kanjiMusicOff();
-    showGate();
+    showProfiles();
   }
 
   function tryGate() {
@@ -3071,7 +3223,7 @@ soonEl.hidden = true;
     gateCode = "";
     ensureUsers();
     var user = userById(digest);
-    if (!user) {
+    if (!user || (pendingProfile && digest !== pendingProfile)) {
       renderGate();
       if (gateMsg) gateMsg.textContent = "もういちど";
       if (gateEl) {
@@ -3113,14 +3265,83 @@ soonEl.hidden = true;
   var logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
+  function chooseProfile(id) {
+    if (!userById(id)) return;
+    if (profileRemembered(id)) enterApp(id);
+    else showGate(id);
+  }
+
+  function setAvatar(id, avatar) {
+    var users = readUsers();
+    var now = Date.now();
+    users.forEach(function (user) {
+      if (user.id === id) {
+        user.avatar = avatar;
+        user.avatarAt = now;
+      }
+    });
+    saveUsers(users);
+    if (window.EmmaCloud && EmmaCloud.syncProfile) EmmaCloud.syncProfile(id);
+    renderProfiles();
+    if (document.body.dataset.screen === "parent") renderParent();
+    var mine = document.querySelector("#myAvatar img");
+    var me = userById(profileId());
+    if (mine && me) mine.src = avatarSrc(me);
+  }
+
+  var pickingFor = "";
+  function openAvatarPicker(id) {
+    if (!userById(id)) return;
+    pickingFor = id;
+    var pick = document.getElementById("avatarPick");
+    var grid = document.getElementById("avatarGrid");
+    if (!pick || !grid) return;
+    var current = avatarIdOf(userById(id));
+    grid.innerHTML = AVATARS.map(function (row) {
+      return "<button type='button' data-avatar='" + row[0] + "'" + (row[0] === current ? " class='spark'" : "") + "><img alt='' src='" + row[2] + "'><span>" + row[1] + "</span></button>";
+    }).join("");
+    pick.hidden = false;
+  }
+
+  var profileGrid = document.getElementById("profileGrid");
+  if (profileGrid) profileGrid.addEventListener("click", function (e) {
+    var card = e.target.closest("[data-profile]");
+    if (!card) return;
+    chooseProfile(card.getAttribute("data-profile"));
+  });
+  var gateBack = document.getElementById("gateBack");
+  if (gateBack) gateBack.addEventListener("click", function () {
+    pendingProfile = "";
+    gateCode = "";
+    showProfiles();
+  });
+  var myAvatar = document.getElementById("myAvatar");
+  if (myAvatar) myAvatar.addEventListener("click", function () {
+    if (profileId()) openAvatarPicker(profileId());
+  });
+  var avatarGrid = document.getElementById("avatarGrid");
+  if (avatarGrid) avatarGrid.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-avatar]");
+    if (!btn || !pickingFor) return;
+    avatarGrid.querySelectorAll("button").forEach(function (el) { el.classList.remove("spark"); });
+    btn.classList.add("spark");
+    var chosen = btn.getAttribute("data-avatar");
+    setTimeout(function () {
+      setAvatar(pickingFor, chosen);
+      var pick = document.getElementById("avatarPick");
+      if (pick) pick.hidden = true;
+    }, 520);
+  });
+  var avatarClose = document.getElementById("avatarClose");
+  if (avatarClose) avatarClose.addEventListener("click", function () {
+    var pick = document.getElementById("avatarPick");
+    if (pick) pick.hidden = true;
+  });
+
   applySoundFlags();
   ensureUsers();
-  if (profileId()) {
-    if (gateEl) gateEl.hidden = true;
-    showHome();
-  } else {
-    showGate();
-  }
+  if (profileId()) rememberProfile(profileId());
+  showProfiles();
   function rehydrateFromStore() {
     progress = loadProgress();
     ensureUsers();

@@ -19,7 +19,10 @@ service cloud.firestore {
       allow create, update: if signedIn()
         && profileIdOk(profileId)
         && request.resource.data.profileId == profileId
-        && request.resource.data.keys().hasOnly(['profileId', 'name', 'updatedAt', 'progress', 'book', 'settings', 'stickers'])
+        && request.resource.data.keys().hasOnly(['profileId', 'name', 'updatedAt', 'avatar', 'avatarAt', 'progress', 'book', 'settings', 'stickers'])
+        && request.resource.data.avatar is string
+        && request.resource.data.avatar.size() <= 20
+        && request.resource.data.avatarAt is number
         && noSecretKeys(request.resource.data)
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 12

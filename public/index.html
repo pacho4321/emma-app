@@ -15,9 +15,23 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff4f93'/%3E%3C/svg%3E">
 </head>
 <body>
-  <section id="gate" class="gate">
-    <img class="gate-bunny" src="assets/bunny.webp" alt="">
-    <p class="gate-lead">あいことば</p>
+  <section id="profiles" class="profiles">
+    <h1 class="profiles-title">だれが べんきょうする？</h1>
+    <div id="profileGrid" class="profile-grid"></div>
+  </section>
+  <section id="avatarPick" class="avatar-pick" hidden>
+    <p class="profiles-title">かおを えらんで</p>
+    <div id="avatarGrid" class="avatar-grid"></div>
+    <button type="button" id="avatarClose" class="avatar-close">もどる</button>
+  </section>
+  <div id="loadVeil" class="load-veil" hidden>
+    <img id="loadAvatar" alt="">
+    <p>よみこみ ちゅう</p>
+  </div>
+  <section id="gate" class="gate" hidden>
+    <button type="button" id="gateBack" class="gate-back" aria-label="もどる">←</button>
+    <img class="gate-bunny" id="gateAvatar" src="assets/avatars/bunny.webp" alt="">
+    <p class="gate-lead" id="gateLead">あいことば</p>
     <p class="gate-dots" id="gateDots" aria-hidden="true">○○○○○○</p>
     <p class="gate-msg" id="gateMsg" aria-live="polite"></p>
     <div class="gate-pad" id="gatePad"></div>
@@ -45,6 +59,7 @@
       <img class="deco d-bunny" src="assets/bunny.webp" alt="">
       <img class="deco d-banner" src="assets/banner-home.webp" alt="今日もがんばろう！">
       <h1 class="d-title"><img src="assets/title.webp" alt="エマの漢字と九九"></h1>
+      <button type="button" id="myAvatar" class="my-avatar" aria-label="かお"><img alt="" src="assets/avatars/bunny.webp"></button>
       <button type="button" id="logoutBtn" class="corner leave" aria-label="でる">でる</button>
       <button type="button" id="muteBtn" class="corner gear" aria-label="おと">⚙</button>
       <button type="button" id="parentBtn" class="corner parent" hidden>おや</button>
