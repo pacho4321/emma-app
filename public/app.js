@@ -21,7 +21,7 @@
   var GLYPH_FONT = '"Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "Yu Gothic", "YuGothic", "WenQuanYi Micro Hei", "Droid Sans Fallback", sans-serif';
   var GRID_N = 24;
   var RECALL_HANAMARU = 0.8;
-  var RECALL_MISS_KANJI = 0.5;
+  var RECALL_MISS_KANJI = 0.3;
   var RECALL_MISS_MATH = 0.72;
   var COPY_HANAMARU = 0.72;
   var COPY_MARU = 0.38;
@@ -958,6 +958,31 @@
     return tmplCache[key];
   }
 
+  function renderStrokeTmpl(ch, w, h) {
+    var key = "stroke:" + ch + "@" + w + "x" + h;
+    if (tmplCache[key]) return tmplCache[key];
+    var exp = expectedStrokes(ch);
+    if (!exp.length) return null;
+    tmplCanvas.width = w;
+    tmplCanvas.height = h;
+    var ctx = tmplCanvas.getContext("2d", { willReadFrequently: true });
+    ctx.clearRect(0, 0, w, h);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = Math.max(10, Math.round(Math.min(w, h) * 0.075));
+    exp.forEach(function (pts) {
+      if (!pts || pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * w, pts[0].y * h);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x * w, pts[i].y * h);
+      ctx.stroke();
+    });
+    var stats = inkStats(tmplCanvas);
+    tmplCache[key] = { norm: blurPasses(gridFromStats(stats, true), BLUR_PASSES) };
+    return tmplCache[key];
+  }
+
   function paintGuide(canvas, text) {
     var ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1474,7 +1499,7 @@
 
   function digitOk(probs, expected) {
     var e = expected.charCodeAt(0) - 48;
-    if (e < 0 || e > 9) return false;
+    if (e < 0 || e > 9 || !probs) return false;
     var top = 0;
     var rank = 0;
     for (var i = 0; i < 10; i++) {
@@ -1482,7 +1507,163 @@
       if (probs[i] > probs[e]) rank++;
     }
     var p = probs[e];
-    return rank < 3 && p >= 0.12 && p >= probs[top] * 0.42;
+    if (probs[top] >= 0.9 && top !== e && p < 0.06) return false;
+    if (top === e && p >= 0.2) return true;
+    return rank < 3 && p >= 0.07 && p >= probs[top] * 0.18;
+  }
+
+  function glyphFacts(part) {
+    var empty = { holes: 0, aspect: 1, z: [0, 0, 0, 0, 0, 0, 0, 0, 0] };
+    if (!part || part.count < 8 || part.maxX < part.minX) return empty;
+    var minX = part.minX;
+    var minY = part.minY;
+    var bw = part.maxX - minX + 1;
+    var bh = part.maxY - minY + 1;
+    var N = 24;
+    var bin = new Uint8Array(N * N);
+    var w = part.w;
+    var y;
+    var x;
+    for (y = 0; y < N; y++) {
+      var ya = minY + Math.floor(y * bh / N);
+      var yb = ya + Math.max(1, Math.floor(bh / N));
+      for (x = 0; x < N; x++) {
+        var xa = minX + Math.floor(x * bw / N);
+        var xb = xa + Math.max(1, Math.floor(bw / N));
+        var hit = false;
+        for (var yy = ya; yy < yb && yy < part.h; yy++) {
+          var row = yy * w;
+          for (var xx = xa; xx < xb && xx < w; xx++) {
+            if (part.gray[row + xx] > 0.12) { hit = true; break; }
+          }
+          if (hit) break;
+        }
+        if (hit) bin[y * N + x] = 1;
+      }
+    }
+    var dil = new Uint8Array(bin);
+    for (y = 0; y < N; y++) {
+      for (x = 0; x < N; x++) {
+        if (!bin[y * N + x]) continue;
+        if (y > 0) dil[(y - 1) * N + x] = 1;
+        if (y + 1 < N) dil[(y + 1) * N + x] = 1;
+        if (x > 0) dil[y * N + x - 1] = 1;
+        if (x + 1 < N) dil[y * N + x + 1] = 1;
+      }
+    }
+    var seen = new Uint8Array(N * N);
+    var qx = [];
+    var qy = [];
+    function push(px, py) {
+      if (px < 0 || py < 0 || px >= N || py >= N) return;
+      var i = py * N + px;
+      if (seen[i] || dil[i]) return;
+      seen[i] = 1;
+      qx.push(px);
+      qy.push(py);
+    }
+    for (var edge = 0; edge < N; edge++) {
+      push(edge, 0);
+      push(edge, N - 1);
+      push(0, edge);
+      push(N - 1, edge);
+    }
+    for (var qi = 0; qi < qx.length; qi++) {
+      var cx = qx[qi];
+      var cy = qy[qi];
+      push(cx + 1, cy);
+      push(cx - 1, cy);
+      push(cx, cy + 1);
+      push(cx, cy - 1);
+    }
+    var holes = 0;
+    var upperHole = false;
+    var lowerHole = false;
+    for (y = 0; y < N; y++) {
+      for (x = 0; x < N; x++) {
+        var hi = y * N + x;
+        if (dil[hi] || seen[hi]) continue;
+        var sx = [x];
+        var sy = [y];
+        var sumY = 0;
+        seen[hi] = 1;
+        for (var k = 0; k < sx.length; k++) {
+          var nx = sx[k];
+          var ny = sy[k];
+          sumY += ny;
+          var neigh = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          for (var ni = 0; ni < 4; ni++) {
+            var tx = nx + neigh[ni][0];
+            var ty = ny + neigh[ni][1];
+            if (tx < 0 || ty < 0 || tx >= N || ty >= N) continue;
+            var ti = ty * N + tx;
+            if (seen[ti] || dil[ti]) continue;
+            seen[ti] = 1;
+            sx.push(tx);
+            sy.push(ty);
+          }
+        }
+        if (sx.length < 4) continue;
+        holes++;
+        var mid = sumY / sx.length;
+        if (mid < N * 0.48) upperHole = true;
+        if (mid > N * 0.52) lowerHole = true;
+      }
+    }
+    var z = [];
+    for (var gy = 0; gy < 3; gy++) {
+      for (var gx = 0; gx < 3; gx++) {
+        var total = 0;
+        var ink = 0;
+        for (var zy = gy * 8; zy < (gy + 1) * 8; zy++) {
+          for (var zx = gx * 8; zx < (gx + 1) * 8; zx++) {
+            total++;
+            if (bin[zy * N + zx]) ink++;
+          }
+        }
+        z.push(ink / total);
+      }
+    }
+    return { holes: holes, upperHole: upperHole, lowerHole: lowerHole, aspect: bh / Math.max(1, bw), z: z };
+  }
+
+  function geomScores(part) {
+    var f = glyphFacts(part);
+    var s = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    var z = f.z;
+    var holes = f.holes;
+    var aspect = f.aspect;
+    if (aspect < 0.75) return s;
+    if (holes >= 2 && f.upperHole && f.lowerHole) s[8] += 0.85;
+    if (holes === 1 && z[4] < 0.12 && aspect < 2.2) s[0] += 0.8;
+    if (holes === 1 && z[3] > 0.6 && z[6] > 0.3 && z[4] > 0.2) s[6] += 0.75;
+    if (holes === 1 && z[6] < 0.08 && z[8] < 0.08 && z[7] > 0.4) s[9] += 0.75;
+    if (holes === 1 && z[6] < 0.12 && z[3] > 0.4 && z[5] > 0.35 && z[4] > 0.15) s[4] += 0.66;
+    if (holes === 0 && aspect >= 1.85 && z[4] > 0.45 && z[2] < 0.25) s[1] += 0.8;
+    if (holes === 0 && aspect >= 2.4 && z[6] < 0.2 && (z[4] > 0.45 || z[5] > 0.7 || z[1] > 0.7)) s[1] += 0.75;
+    if (holes === 0 && aspect < 2.2 && z[3] < 0.2 && z[5] < 0.4 && z[6] > 0.3 && z[7] > 0.4 && z[0] > 0.4 && z[2] > 0.3) s[2] += 0.7;
+    if (holes === 0 && z[3] < 0.08 && z[5] > 0.5 && z[2] > 0.55 && z[6] > 0.3 && aspect < 1.9) s[3] += 0.72;
+    if (holes === 0 && z[6] < 0.08 && z[3] > 0.55 && aspect < 1.9) s[4] += 0.72;
+    if (holes === 0 && aspect < 1.7 && z[0] > 0.55 && z[3] > 0.4 && z[4] > 0.4 && z[6] > 0.4 && z[8] > 0.35) s[5] += 0.62;
+    if (holes === 0 && aspect < 1.7 && z[2] > 0.68 && z[8] < 0.08 && z[6] < 0.2) s[7] += 0.74;
+    return s;
+  }
+
+  function digitSupports(probs, expected, geo, facts) {
+    var e = expected.charCodeAt(0) - 48;
+    if (e < 0 || e > 9 || !geo) return false;
+    var aspect = facts && facts.aspect ? facts.aspect : 1;
+    var upright = aspect >= 0.9 && aspect <= 7.5;
+    var gTop = 0;
+    for (var i = 1; i < 10; i++) if (geo[i] > geo[gTop]) gTop = i;
+    var cnnMatch = !!(probs && topIndex(probs) === e && probs[e] >= 0.42 && upright);
+    if (cnnMatch) return true;
+    var geoSure = geo[e] >= 0.6 && geo[e] >= geo[gTop] - 0.04 && upright;
+    var geoOther = gTop !== e && geo[gTop] >= 0.6 && geo[e] < 0.4;
+    if (geoOther) return false;
+    if (geoSure) return true;
+    if (digitOk(probs, expected) && upright && geo[gTop] < 0.6) return true;
+    return false;
   }
 
   function smoothCols(cols, x0, x1) {
@@ -1633,9 +1814,18 @@
       }
     });
     var keys = Object.keys(groups);
-    if (keys.length !== n) return null;
     var spans = keys.map(function (k) { return [Math.floor(groups[k].minX), Math.ceil(groups[k].maxX)]; });
     spans.sort(function (a, b) { return a[0] - b[0]; });
+    while (spans.length > n) {
+      var bestI = 0;
+      var bestGap = Infinity;
+      for (var g = 0; g < spans.length - 1; g++) {
+        var gap = spans[g + 1][0] - spans[g][1];
+        if (gap < bestGap) { bestGap = gap; bestI = g; }
+      }
+      spans.splice(bestI, 2, [spans[bestI][0], spans[bestI + 1][1]]);
+    }
+    if (spans.length !== n) return null;
     return spans;
   }
 
@@ -1674,8 +1864,14 @@
         var top = topIndex(p);
         greedy += String(top);
         conf += p[top];
-        expectScore += p[answer.charCodeAt(i) - 48] || 0;
-        if (!digitOk(p, answer.charAt(i))) good = false;
+        var want = answer.charCodeAt(i) - 48;
+        var facts = glyphFacts(part);
+        var geo = geomScores(part);
+        var supported = digitSupports(p, answer.charAt(i), geo, facts);
+        if (!supported) good = false;
+        var contrib = p[want] || 0;
+        if (supported && geo[want] >= 0.6) contrib = Math.max(contrib, 0.7);
+        expectScore += contrib;
       }
       if (probs.length !== answer.length) continue;
       conf /= probs.length;
@@ -1686,20 +1882,15 @@
       if (good) {
         var score = expectScore / answer.length;
         if (!accepted || score > accepted.score) accepted = { score: score, read: answer };
-      } else if (greedy === answer && conf >= 0.45) {
-        var gscore = conf;
-        if (!accepted || gscore > accepted.score) accepted = { score: gscore, read: answer };
       }
     }
     if (accepted) {
       setDigitDebug(accepted.read, answer, true);
       return { kind: accepted.score >= 0.72 ? "hanamaru" : "maru", score: accepted.score, read: accepted.read };
     }
-    var clearWrong = bestRead && bestRead !== answer && bestConf >= 0.58 && bestRead.length === answer.length;
     setDigitDebug(bestRead || "？", answer, false);
-    if (clearWrong) return { kind: "miss", score: bestConf, read: bestRead };
     if (field.count < 70) return { kind: "empty", score: 0, read: bestRead || "" };
-    return { kind: "maru", score: 0.45, read: bestRead || answer };
+    return { kind: "miss", score: bestConf > 0 ? bestConf : 0, read: bestRead || "" };
   }
 
   function judgeNumberLegacy(canvas, answer) {
@@ -1759,11 +1950,37 @@ if (copy) {
     if (kind === "kuku" && rivalMiss(userNorm, answer, canvas.width, canvas.height)) {
       return { kind: "miss", score: 0, rival: true };
     }
-    var score = cosine(userNorm, tmpl.norm);
+    var cover = coverage(blurPasses(gridFromStats(stats, false), BLUR_PASSES + 1), tmpl.pos);
+    var fontShape = cosine(userNorm, tmpl.norm);
+    var score = fontShape;
+    if (kind === "kanji") {
+      var drawn = renderStrokeTmpl(answer, canvas.width, canvas.height);
+      var strokeShape = drawn ? cosine(userNorm, drawn.norm) : 0;
+      score = Math.max(strokeShape, fontShape);
+      if (strokeShape >= 0.42) score = Math.max(score, strokeShape * 0.72 + cover * 0.28);
+      if (strokeShape < 0.64) return { kind: "miss", score: strokeShape || score };
+      if (kanjiRival(userNorm, answer, canvas.width, canvas.height, strokeShape)) {
+        return { kind: "miss", score: score };
+      }
+    }
     var missBelow = kind === "kuku" ? RECALL_MISS_MATH : RECALL_MISS_KANJI;
+    if (kind !== "kanji" && score < missBelow) return { kind: "miss", score: score };
     if (score >= RECALL_HANAMARU && placementOk(stats)) return { kind: "hanamaru", score: score };
-    if (score < missBelow) return { kind: "miss", score: score };
     return { kind: "maru", score: score };
+  }
+
+  function kanjiRival(userGrid, answer, w, h, correct) {
+    var best = 0;
+    var list = window.KANJI || [];
+    for (var i = 0; i < list.length; i++) {
+      var ch = list[i].kanji || list[i].id;
+      if (!ch || ch === answer) continue;
+      var drawn = renderStrokeTmpl(ch, w, h);
+      if (!drawn) continue;
+      var s = cosine(userGrid, drawn.norm);
+      if (s > best) best = s;
+    }
+    return best > correct + 0.02;
   }
 
   function strokesFor(ch) {
@@ -1928,13 +2145,67 @@ if (copy) {
     });
   }
 
+  function strokeCentroid(pts) {
+    var x = 0;
+    var y = 0;
+    pts.forEach(function (p) { x += p.x; y += p.y; });
+    return { x: x / pts.length, y: y / pts.length };
+  }
+
+  function resampleStroke(pts, n) {
+    if (!pts || pts.length < 2) return pts ? pts.slice() : [];
+    var lens = [0];
+    var total = 0;
+    var i;
+    for (i = 1; i < pts.length; i++) {
+      total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      lens.push(total);
+    }
+    if (total < 1e-4) return pts.slice(0, n);
+    var out = [];
+    for (var k = 0; k < n; k++) {
+      var target = total * (n === 1 ? 0 : k / (n - 1));
+      var j = 1;
+      while (j < lens.length - 1 && lens[j] < target) j++;
+      var span = lens[j] - lens[j - 1] || 1;
+      var t = (target - lens[j - 1]) / span;
+      out.push({
+        x: pts[j - 1].x + (pts[j].x - pts[j - 1].x) * t,
+        y: pts[j - 1].y + (pts[j].y - pts[j - 1].y) * t
+      });
+    }
+    return out;
+  }
+
+  function strokeScore(userPts, expPts) {
+    if (!userPts || userPts.length < 2 || !expPts || expPts.length < 2) return 0;
+    var u = resampleStroke(userPts, 6);
+    var e = resampleStroke(expPts, 6);
+    var place = 0;
+    for (var i = 0; i < 6; i++) place += Math.hypot(u[i].x - e[i].x, u[i].y - e[i].y);
+    place /= 6;
+    var udx = u[5].x - u[0].x;
+    var udy = u[5].y - u[0].y;
+    var edx = e[5].x - e[0].x;
+    var edy = e[5].y - e[0].y;
+    var ul = Math.hypot(udx, udy);
+    var el = Math.hypot(edx, edy);
+    var dot = 1;
+    if (ul > 0.04 && el > 0.04) dot = (udx * edx + udy * edy) / (ul * el);
+    var start = Math.hypot(u[0].x - e[0].x, u[0].y - e[0].y);
+    var score = 0;
+    if (place < 0.42) score += (0.42 - place) / 0.42 * 0.62;
+    if (dot > 0) score += dot * 0.23;
+    if (start < 0.45) score += (0.45 - start) / 0.45 * 0.15;
+    return score;
+  }
+
   function strokeMatch(userPts, expPts) {
     if (!userPts || userPts.length < 2 || !expPts || expPts.length < 2) return false;
     var us = userPts[0];
     var ue = userPts[userPts.length - 1];
     var es = expPts[0];
     var ee = expPts[expPts.length - 1];
-    var start = Math.hypot(us.x - es.x, us.y - es.y);
     var udx = ue.x - us.x;
     var udy = ue.y - us.y;
     var edx = ee.x - es.x;
@@ -1942,48 +2213,60 @@ if (copy) {
     var ul = Math.hypot(udx, udy);
     var el = Math.hypot(edx, edy);
     var dot = 1;
-    if (ul > 0.03 && el > 0.03) dot = (udx * edx + udy * edy) / (ul * el);
-    var um = userPts[Math.floor(userPts.length / 2)];
-    var em = expPts[Math.floor(expPts.length / 2)];
-    var mid = Math.hypot(um.x - em.x, um.y - em.y);
-    return start < 0.28 && mid < 0.32 && dot > 0.15;
+    if (ul > 0.04 && el > 0.04) dot = (udx * edx + udy * edy) / (ul * el);
+    var uc = strokeCentroid(userPts);
+    var ec = strokeCentroid(expPts);
+    var place = Math.hypot(uc.x - ec.x, uc.y - ec.y);
+    var start = Math.hypot(us.x - es.x, us.y - es.y);
+    if (ul < 0.06 && el < 0.08) return place < 0.22;
+    return place < 0.42 && dot > -0.05 && start < 0.55;
   }
 
   function classifyOrder(userStrokes, ch, canvas) {
     var exp = expectedStrokes(ch);
     if (!exp.length || !userStrokes.length) return "unknown";
-    var normed = userStrokes.map(function (s) { return normUserStroke(s, canvas); });
+    var normed = userStrokes.map(function (s) { return normUserStroke(s, canvas); }).filter(function (s) {
+      if (s.length < 2) return false;
+      return Math.hypot(s[s.length - 1].x - s[0].x, s[s.length - 1].y - s[0].y) > 0.03 || s.length > 3;
+    });
     var n = exp.length;
     var m = normed.length;
-    var matched = 0;
+    if (!m) return "unknown";
     var limit = Math.min(m, n);
-    for (var i = 0; i < limit; i++) if (strokeMatch(normed[i], exp[i])) matched++;
-    var seq = matched / n;
-    if (seq >= 0.6 && m >= n * 0.5) return "good";
-    if (m <= 2 && n >= 5) return "wrong";
-    if (seq < 0.25 && m >= 2) return "wrong";
-    if (seq >= 0.25) return "slip";
-    return "wrong";
+    var diag = 0;
+    var rev = 0;
+    var own = 0;
+    for (var i = 0; i < limit; i++) {
+      var self = strokeScore(normed[i], exp[i]);
+      var best = self;
+      var bestJ = i;
+      for (var j = 0; j < n; j++) {
+        if (j === i) continue;
+        var alt = strokeScore(normed[i], exp[j]);
+        if (alt > best) { best = alt; bestJ = j; }
+      }
+      diag += self;
+      if (bestJ === i && self >= 0.45) own++;
+      rev += strokeScore(normed[i], exp[n - 1 - i]);
+    }
+    diag /= limit;
+    rev /= limit;
+    if (n === 1) return diag >= 0.4 ? "good" : "slip";
+    if (own >= Math.ceil(n * 0.6) && diag >= 0.48 && diag >= rev + 0.08) return "good";
+    if (m >= 2 && (rev > diag + 0.05 || own <= Math.floor(n * 0.34))) return "wrong";
+    return "slip";
   }
 
+  // A correct kanji shape is always まる. Wrong stroke order never
+  // turns it into a miss. Correct shape and correct order is はなまる.
+  // The caller adds the gentle 順番 note when order is "slip".
   function withOrder(result, canvas, answer, copy) {
     var order = classifyOrder(kanjiUserStrokes, answer, canvas);
-    if (order === "unknown" || result.kind === "empty") return result;
-    if (copy) {
-      if (result.kind === "keep") return result;
-      if (order === "good") return { kind: "hanamaru", score: result.score, order: order };
-      return { kind: result.kind === "miss" ? "maru" : "maru", score: result.score, order: order };
-    }
-    if (order === "wrong") return { kind: "miss", score: result.score, order: "wrong" };
-    if (order === "slip") {
-      if (result.kind === "miss" && result.score < 0.35) return { kind: "miss", score: result.score, order: "wrong" };
-      return { kind: "maru", score: result.score, order: "slip" };
-    }
-    if (order === "good") {
-      if (result.kind === "hanamaru" || result.score >= 0.62) return { kind: "hanamaru", score: result.score, order: "good" };
-      return { kind: "maru", score: result.score, order: "good" };
-    }
-    return result;
+    if (result.kind === "empty" || result.kind === "keep") return result;
+    if (result.kind === "miss") return { kind: "miss", score: result.score, order: order };
+    if (order === "good") return { kind: "hanamaru", score: Math.max(result.score, 0.7), order: "good" };
+    var note = order === "unknown" ? "" : "slip";
+    return { kind: "maru", score: result.score, order: note || "slip" };
   }
 
   function noteStrokeMatch() {
@@ -2282,18 +2565,22 @@ if (copy) {
     }
     busy = true;
     var great = result.kind === "hanamaru";
-    var praise = great ? "はなまる！" : (result.order === "slip" ? "まる！ かきじゅんも みてね" : "まる！");
+    var orderOff = view.kind === "kanji" && result.order === "slip";
+    var praise = great ? "はなまる！" : (orderOff ? "かんじは せいかい！じゅんばんも れんしゅうしようね" : "まる！");
     if (view.kind === "kanji") saveKanjiSample(view, canvas, great ? "hanamaru" : "maru");
     else saveFactSample(view, great ? "hanamaru" : "maru");
     setFeedback(praise, great ? "hanamaru" : "maru");
     EmmaSound.chime(great ? "hanamaru" : "maru");
-    if (result.order === "slip" && view.kind === "kanji") playStrokeOrder(view.answer, { fade: true });
+    if (orderOff) {
+      playStrokeOrder(view.answer, { fade: true });
+      if (!ref.orderPractice) active.queue.push({ kind: "kanji", id: ref.id, orderPractice: true });
+    }
     if (ref.fromRemember && !ref.copy) removeRemember(ref);
     setTimeout(function () {
       if (!active) return;
       active.queue.shift();
       renderFromActive();
-    }, result.order === "slip" ? 1500 : 800);
+    }, orderOff ? 2200 : 800);
   }
 
   function showTriangle(ref) {
@@ -3444,7 +3731,47 @@ soonEl.hidden = true;
         var field = grayFromCanvas(canvas);
         return Array.prototype.slice.call(prepDigit(field.gray, field.w, field.h));
       },
-      lastRead: function () { return lastDigitRead; }
+      lastRead: function () { return lastDigitRead; },
+      paintStrokes: function (kind, strokes) {
+        var canvas = kind === "kanji" ? kanjiInk : mathInk;
+        clearInk(canvas);
+        if (kind === "kanji") kanjiUserStrokes = [];
+        else mathUserStrokes = [];
+        var ctx = canvas.getContext("2d");
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#241b38";
+        ctx.lineWidth = kind === "kanji" ? 16 : 18;
+        (strokes || []).forEach(function (pts) {
+          if (!pts || pts.length < 2) return;
+          var pix = pts.map(function (p) {
+            return { x: p.x * canvas.width, y: p.y * canvas.height };
+          });
+          if (kind === "kanji") kanjiUserStrokes.push(pix);
+          else mathUserStrokes.push(pix);
+          ctx.beginPath();
+          ctx.moveTo(pix[0].x, pix[0].y);
+          pix.slice(1).forEach(function (p) { ctx.lineTo(p.x, p.y); });
+          ctx.stroke();
+        });
+        return canvas;
+      },
+      gradeKanji: function (ch) {
+        var result = judge(kanjiInk, ch, false, "kanji");
+        return withOrder(result, kanjiInk, ch, false);
+      },
+      gradeNumber: function (answer) {
+        return judgeNumber(mathInk, String(answer));
+      },
+      debugInk: function () {
+        var field = grayFromCanvas(mathInk);
+        var facts = glyphFacts(field);
+        return { geo: Array.prototype.slice.call(geomScores(field)), aspect: facts.aspect, holes: facts.holes, z: facts.z };
+      },
+      kanjiList: function () {
+        return (window.KANJI || []).map(function (k) { return k.kanji || k.id; });
+      },
+      expectedOf: function (ch) { return expectedStrokes(ch); }
     };
   }
 })();
