@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function profileIdOk(id) {
+      return id.matches('^[0-9a-f]{64}$');
+    }
+
+    function noSecretKeys(data) {
+      return !data.keys().hasAny(['password', 'code', 'passcode', 'plain', 'secret']);
+    }
+
+    match /profiles/{profileId} {
+      allow read: if signedIn() && profileIdOk(profileId);
+      allow create, update: if signedIn()
+        && profileIdOk(profileId)
+        && request.resource.data.profileId == profileId
+        && request.resource.data.keys().hasOnly(['profileId', 'name', 'updatedAt', 'avatar', 'avatarAt', 'progress', 'book', 'settings', 'stickers'])
+        && request.resource.data.avatar is string
+        && request.resource.data.avatar.size() <= 20
+        && request.resource.data.avatarAt is number
+        && noSecretKeys(request.resource.data)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 12
+        && request.resource.data.updatedAt is number;
+      allow delete: if false;
+    }
+
+    match /registry/names {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['updatedAt', 'kids'])
+        && request.resource.data.updatedAt is number
+        && request.resource.data.kids is list
+        && request.resource.data.kids.size() <= 30;
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

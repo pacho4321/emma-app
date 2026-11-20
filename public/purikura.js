@@ -233,6 +233,7 @@
     if (view) view.hidden = false;
     showChrome("edit");
     paintDots();
+    pushStickers();
   }
 
   function showLive() {
@@ -545,10 +546,33 @@
     var i = FRAMES.indexOf(frameId);
     return i < 0 ? 0 : i;
   }
+  function pushStickers() {
+    if (!window.EmmaCloud || !EmmaCloud.noteStickers) return;
+    EmmaCloud.noteStickers({
+      frame: frameId,
+      filter: filterId,
+      items: items.map(function (it) {
+        return {
+          kind: it.kind,
+          src: it.src || "",
+          text: it.text || "",
+          color: it.color || "",
+          x: it.x,
+          y: it.y,
+          w: it.w,
+          h: it.h,
+          rot: it.rot || 0,
+          aspect: it.aspect || 0
+        };
+      })
+    });
+  }
+
   function stepFrame(dir) {
     frameId = FRAMES[(frameIndex() + dir + FRAMES.length) % FRAMES.length];
     paintDots();
     redraw();
+    pushStickers();
   }
   function paintDots() {
     var box = el("puriFrames");
@@ -582,6 +606,7 @@
     mode = "move";
     hideTray();
     redraw();
+    pushStickers();
   }
 
   function addText(text, color) {
@@ -841,7 +866,7 @@
       }
       if (e.target.closest("[data-back]")) { setTab("seal", true); return; }
       if (sticker) { addSticker(sticker.getAttribute("data-sticker")); return; }
-      if (filter) { filterId = filter.getAttribute("data-filter"); setTab("kazari", true); redraw(); return; }
+      if (filter) { filterId = filter.getAttribute("data-filter"); setTab("kazari", true); redraw(); pushStickers(); return; }
       if (color) {
         pen.color = color.getAttribute("data-color");
         pen.erase = false;
