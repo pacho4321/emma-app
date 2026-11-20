@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+<circle cx="120" cy="120" r="52" fill="#ffe56a" stroke="#5c3d78" stroke-width="6"/>
+<ellipse cx="106.4" cy="118" rx="6.4" ry="7.199999999999999" fill="#fff" stroke="#5c3d78" stroke-width="4"/><ellipse cx="133.6" cy="118" rx="6.4" ry="7.199999999999999" fill="#fff" stroke="#5c3d78" stroke-width="4"/><circle cx="107.2" cy="119" r="2.8000000000000003" fill="#3a2a44"/><circle cx="134.4" cy="119" r="2.8000000000000003" fill="#3a2a44"/><circle cx="98.0" cy="129.2" r="3.2" fill="#ff9db8"/><circle cx="142.0" cy="129.2" r="3.2" fill="#ff9db8"/><path d="M111.2 133.2 Q120 141.2 128.8 133.2" fill="none" stroke="#e45b86" stroke-width="4" stroke-linecap="round"/>
+<g stroke="#ffb15e" stroke-width="8" stroke-linecap="round">
+<line x1="120" y1="28" x2="120" y2="52"/>
+<line x1="120" y1="188" x2="120" y2="212"/>
+<line x1="28" y1="120" x2="52" y2="120"/>
+<line x1="188" y1="120" x2="212" y2="120"/>
+<line x1="52" y1="52" x2="70" y2="70"/>
+<line x1="170" y1="170" x2="188" y2="188"/>
+<line x1="188" y1="52" x2="170" y2="70"/>
+<line x1="70" y1="170" x2="52" y2="188"/>
+</g>
+</svg>

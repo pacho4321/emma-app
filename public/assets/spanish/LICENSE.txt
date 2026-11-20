@@ -1,0 +1,3 @@
+Español 1 pictures and Ellen's portrait are original drawings made for this app.
+Spanish speech files were generated with eSpeak NG (GPL-3.0), voice es-419, then encoded to MP3.
+No third-party illustrations are included.

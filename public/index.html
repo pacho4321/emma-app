@@ -227,6 +227,35 @@
     </section>
   </main>
 
+  <section id="ellenHome" class="ellen-home" hidden>
+    <button type="button" id="ellenMenuFace" class="ellen-face" aria-label="かお"><img class="ellen-avatar-img" alt="" src="assets/avatars/ellen.svg"></button>
+    <p class="ellen-name">エレン</p>
+    <div id="ellenCatStars" class="cat-stars"></div>
+    <div id="ellenStickerTray" class="sticker-tray"></div>
+    <button type="button" id="ellenPlay" class="espanol-launch">Español 1</button>
+    <button type="button" id="ellenLeave" class="ellen-leave" aria-label="でる">でる</button>
+  </section>
+  <section id="espanol" class="espanol" hidden>
+    <img class="espanol-glitter g1" src="assets/star-yellow.webp" alt="">
+    <img class="espanol-glitter g2" src="assets/star-pink.webp" alt="">
+    <img class="espanol-glitter g3" src="assets/star-blue.webp" alt="">
+    <header class="espanol-bar">
+      <button type="button" id="espanolBack" class="espanol-back" aria-label="もどる">←</button>
+      <h1 class="espanol-title">Español 1</h1>
+      <button type="button" id="espanolFace" class="ellen-face small" aria-label="かお"><img class="ellen-avatar-img" alt="" src="assets/avatars/ellen.svg"></button>
+    </header>
+    <div id="espanolCats" class="cat-stars slim"></div>
+    <div class="espanol-prompt">
+      <button type="button" id="espanolReplay" class="espanol-speaker" aria-label="もういちど"><img src="assets/speaker.webp" alt=""></button>
+      <p id="espanolWord" class="espanol-word"></p>
+    </div>
+    <div id="espanolGrid" class="espanol-grid"></div>
+    <div id="espanolPop" class="espanol-pop" hidden>
+      <p id="espanolPopText"></p>
+      <img id="espanolSticker" alt="" hidden>
+    </div>
+  </section>
+
   <script src="store.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -237,6 +266,7 @@
   <script src="strokes.js"></script>
   <script src="sound.js"></script>
   <script src="purikura.js"></script>
+  <script src="spanish.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

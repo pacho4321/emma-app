@@ -16,7 +16,8 @@
   // compare these. It is a light lock for a shared tablet, not account security.
   var GATE_HASH = {
     emma: "881078b433019ca48f1be40fd5641f7bbfb1ae4e16e943fd28596ba14c359fbd",
-    guest: "66b49fe4f7018673a75d9a7c39911a0458695d23bff9e96b6298eb7704d6bf1d"
+    guest: "66b49fe4f7018673a75d9a7c39911a0458695d23bff9e96b6298eb7704d6bf1d",
+    ellen: "edcf12d66bc81b44981af0dce6bde22e0c9e257ba9f25b0ccbb3a72fedde9ff6"
   };
   var GLYPH_FONT = '"Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "Yu Gothic", "YuGothic", "WenQuanYi Micro Hei", "Droid Sans Fallback", sans-serif';
   var GRID_N = 24;
@@ -160,9 +161,15 @@
       });
     });
     if (!seen[GATE_HASH.emma]) out.unshift({ id: GATE_HASH.emma, name: "エマ", builtin: "main" });
+    if (!seen[GATE_HASH.ellen]) out.push({ id: GATE_HASH.ellen, name: "エレン", builtin: "ellen", avatar: "ellen" });
     if (!seen[GATE_HASH.guest]) out.push({ id: GATE_HASH.guest, name: "ゲスト", builtin: "guest" });
     out.sort(function (a, b) {
-      var rank = function (u) { return u.builtin === "main" ? 0 : (u.builtin === "guest" ? 1 : 2); };
+      var rank = function (u) {
+        if (u.builtin === "main") return 0;
+        if (u.builtin === "ellen") return 1;
+        if (u.builtin === "guest") return 2;
+        return 3;
+      };
       return rank(a) - rank(b);
     });
     return out;
@@ -200,7 +207,8 @@
     ["cupcake", "ケーキ", "assets/avatars/cupcake.webp"],
     ["unicorn", "ゆに", "assets/avatars/unicorn.webp"],
     ["chick", "ひよこ", "assets/avatars/chick.webp"],
-    ["fox", "きつね", "assets/avatars/fox.webp"]
+    ["fox", "きつね", "assets/avatars/fox.webp"],
+    ["ellen", "エレン", "assets/avatars/ellen.svg"]
   ];
 
   function avatarIdOf(user) {
@@ -208,6 +216,7 @@
     for (var i = 0; i < AVATARS.length; i++) if (AVATARS[i][0] === chosen) return chosen;
     if (user && user.builtin === "guest") return "cupcake";
     if (user && user.builtin === "main") return "bunny";
+    if (user && user.builtin === "ellen") return "ellen";
     var n = 0;
     var id = user && user.id || "";
     if (id.length >= 2) n = parseInt(id.slice(0, 2), 16) || 0;
@@ -343,6 +352,7 @@
       base.mute = !!p.mute;
       base.bgmPaused = !!p.bgmPaused;
       if (Array.isArray(p.remember)) base.remember = p.remember.filter(known);
+      if (p.spanish && typeof p.spanish === "object") base.spanish = p.spanish;
     } catch (e) {}
     base.kanjiIndex = ((base.kanjiIndex % KANJI.length) + KANJI.length) % KANJI.length;
     base.kukuIndex = ((base.kukuIndex % KUKU.length) + KUKU.length) % KUKU.length;
@@ -357,6 +367,18 @@
       progress.updatedAt = Date.now();
       storeSet(progressKey(), JSON.stringify(progress));
     } catch (e) {}
+  }
+
+  function mirrorEspanolStickers() {
+    var id = profileId();
+    if (!id || !progress.spanish) return;
+    var key = "emma-stickers-" + id;
+    var prev = {};
+    try { prev = JSON.parse(storeGet(key) || "{}"); } catch (e) { prev = {}; }
+    if (!Array.isArray(prev.items)) prev.items = [];
+    prev.espanol = Array.isArray(progress.spanish.stickers) ? progress.spanish.stickers.slice(-40) : [];
+    prev.updatedAt = Date.now();
+    storeSet(key, JSON.stringify(prev));
   }
 
   function readActive() {
@@ -626,7 +648,7 @@
     if (gateEl) gateEl.hidden = true;
     home.hidden = name !== "home";
     var shell = document.querySelector(".card");
-    if (shell) shell.hidden = name === "home";
+    if (shell) shell.hidden = name === "home" || name === "ellen" || name === "espanol";
     play.hidden = name !== "play";
     study.hidden = name !== "study";
     done.hidden = name !== "done";
@@ -634,6 +656,10 @@
     var parent = document.getElementById("parent");
     if (book) book.hidden = name !== "book";
     if (parent) parent.hidden = name !== "parent";
+    var ellenHome = document.getElementById("ellenHome");
+    var espanol = document.getElementById("espanol");
+    if (ellenHome) ellenHome.hidden = name !== "ellen";
+    if (espanol) espanol.hidden = name !== "espanol";
     document.body.dataset.screen = name;
     if (name === "home") fitHome();
   }
@@ -694,7 +720,8 @@
     var users = readUsers();
     grid.classList.toggle("few", users.length <= 3);
     grid.innerHTML = users.map(function (user) {
-      return "<button type='button' class='profile-card' data-profile='" + user.id + "'><img alt='' src='" + avatarSrc(user) + "'><span>" + escapeHtml(user.name) + "</span></button>";
+      var game = user.builtin === "ellen" ? "<b class='profile-game'>Español 1</b>" : "";
+      return "<button type='button' class='profile-card' data-profile='" + user.id + "'><img alt='' src='" + avatarSrc(user) + "'><span>" + escapeHtml(user.name) + "</span>" + game + "</button>";
     }).join("");
   }
 
@@ -720,6 +747,10 @@
     var parent = document.getElementById("parent");
     if (book) book.hidden = true;
     if (parent) parent.hidden = true;
+    var ellenHome = document.getElementById("ellenHome");
+    var espanol = document.getElementById("espanol");
+    if (ellenHome) ellenHome.hidden = true;
+    if (espanol) espanol.hidden = true;
     document.body.dataset.screen = "profiles";
     renderProfiles();
   }
@@ -3169,7 +3200,7 @@ soonEl.hidden = true;
       face.addEventListener("click", function () { openAvatarPicker(u.id); });
       row.appendChild(face);
       var name = document.createElement("span");
-      name.textContent = u.name + (u.builtin === "main" ? "（メイン）" : (u.builtin === "guest" ? "（ゲスト）" : ""));
+      name.textContent = u.name + (u.builtin === "main" ? "（メイン）" : (u.builtin === "ellen" ? "（Español 1）" : (u.builtin === "guest" ? "（ゲスト）" : "")));
       row.appendChild(name);
       if (!u.builtin) {
         var del = document.createElement("button");
@@ -3484,8 +3515,13 @@ soonEl.hidden = true;
       var wait = Math.max(0, 700 - (Date.now() - started));
       setTimeout(function () {
         hideLoading();
-        showHome();
-        EmmaSound.playOpening();
+        if (user && user.builtin === "ellen" && window.EmmaSpanish) {
+          showOnly("espanol");
+          EmmaSpanish.openGame();
+        } else {
+          showHome();
+          EmmaSound.playOpening();
+        }
       }, wait);
     }
     if (window.EmmaCloud && EmmaCloud.pullAndMerge && navigator.onLine !== false) {
@@ -3497,6 +3533,7 @@ soonEl.hidden = true;
 
   function logout() {
     cancelReward();
+    if (window.EmmaSpanish) EmmaSpanish.stop();
     storeRemove(GATE_KEY);
     active = null;
     EmmaSound.stopSong();
@@ -3553,7 +3590,13 @@ soonEl.hidden = true;
   if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
   function chooseProfile(id) {
-    if (!userById(id)) return;
+    var user = userById(id);
+    if (!user) return;
+    if (user.builtin === "ellen") {
+      if (window.EmmaSpanish) EmmaSpanish.unlock();
+      enterApp(id);
+      return;
+    }
     if (profileRemembered(id)) enterApp(id);
     else showGate(id);
   }
@@ -3574,6 +3617,10 @@ soonEl.hidden = true;
     var mine = document.querySelector("#myAvatar img");
     var me = userById(profileId());
     if (mine && me) mine.src = avatarSrc(me);
+    document.querySelectorAll(".ellen-avatar-img").forEach(function (img) {
+      var who = userById(profileId());
+      if (who) img.src = avatarSrc(who);
+    });
   }
 
   var pickingFor = "";
@@ -3633,6 +3680,11 @@ soonEl.hidden = true;
     progress = loadProgress();
     ensureUsers();
     if (profileId() && document.body.dataset.screen === "gate") showHome();
+    if (profileId() === GATE_HASH.ellen && document.body.dataset.screen === "home" && window.EmmaSpanish) {
+      showOnly("ellen");
+      EmmaSpanish.openMenu();
+    }
+    if (window.EmmaSpanish) EmmaSpanish.refresh();
     if (document.body.dataset.screen === "parent") renderParent();
     if (document.body.dataset.screen === "book") renderBook("kanji");
     refreshCloud();
@@ -3773,5 +3825,25 @@ soonEl.hidden = true;
       },
       expectedOf: function (ch) { return expectedStrokes(ch); }
     };
+  }
+
+  if (window.EmmaSpanish) {
+    EmmaSpanish.boot({
+      progress: function () { return progress; },
+      save: function () {
+        saveProgress();
+        mirrorEspanolStickers();
+      },
+      leave: logout,
+      avatar: function () {
+        var me = userById(profileId());
+        return me ? avatarSrc(me) : "assets/avatars/ellen.svg";
+      },
+      pickAvatar: function () {
+        if (profileId()) openAvatarPicker(profileId());
+      },
+      show: showOnly,
+      chime: function (kind) { if (window.EmmaSound) EmmaSound.chime(kind); }
+    });
   }
 })();

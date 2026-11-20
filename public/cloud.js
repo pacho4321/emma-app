@@ -65,6 +65,48 @@
     return Object.keys(map).map(function (key) { return map[key]; });
   }
 
+  function mergeSpanish(local, remote) {
+    if (!local && !remote) return null;
+    var words = {};
+    function take(src) {
+      var rows = (src && src.words) || {};
+      Object.keys(rows).forEach(function (id) {
+        var row = rows[id];
+        if (!row || typeof row !== "object") return;
+        var prev = words[id];
+        var next = {
+          box: Math.max(Number(row.box) || 0, prev ? Number(prev.box) || 0 : 0),
+          due: Number(row.due) || 0,
+          streak: Number(row.streak) || 0,
+          lapses: Math.max(Number(row.lapses) || 0, prev ? Number(prev.lapses) || 0 : 0),
+          correct: Math.max(Number(row.correct) || 0, prev ? Number(prev.correct) || 0 : 0),
+          wrong: Math.max(Number(row.wrong) || 0, prev ? Number(prev.wrong) || 0 : 0),
+          t: Math.max(Number(row.t) || 0, prev ? Number(prev.t) || 0 : 0)
+        };
+        if (prev && (Number(prev.t) || 0) > (Number(row.t) || 0)) next.due = prev.due;
+        if (prev && (Number(prev.box) || 0) > (Number(row.box) || 0)) next.streak = prev.streak;
+        words[id] = next;
+      });
+    }
+    take(local);
+    take(remote);
+    var stickers = {};
+    function takeStick(src) {
+      ((src && src.stickers) || []).forEach(function (row) {
+        if (!row || !row.id) return;
+        var prev = stickers[row.id];
+        if (!prev || (Number(row.t) || 0) >= prev.t) stickers[row.id] = { id: String(row.id), t: Number(row.t) || 0 };
+      });
+    }
+    takeStick(local);
+    takeStick(remote);
+    return {
+      words: words,
+      stickers: Object.keys(stickers).map(function (key) { return stickers[key]; }),
+      updatedAt: Math.max(Number(local && local.updatedAt) || 0, Number(remote && remote.updatedAt) || 0)
+    };
+  }
+
   function mergeProgress(localText, remoteObj) {
     var local = parseJson(localText) || {};
     var remote = remoteObj || {};
@@ -80,6 +122,8 @@
       bgmPaused: newerSettings.bgmPaused !== false,
       updatedAt: Math.max(Number(local.updatedAt) || 0, Number(remote.updatedAt) || 0)
     };
+    var spanish = mergeSpanish(local.spanish, remote.spanish);
+    if (spanish) merged.spanish = spanish;
     return JSON.stringify(merged);
   }
 
@@ -413,10 +457,12 @@
       var id = profileFn();
       if (!id || !window.EmmaStore || !data) return;
       data.updatedAt = Date.now();
+      var prevStick = parseJson(EmmaStore.get("emma-stickers-" + id)) || {};
       EmmaStore.set("emma-stickers-" + id, JSON.stringify({
         frame: String(data.frame || ""),
         filter: String(data.filter || ""),
         items: Array.isArray(data.items) ? data.items.slice(0, 40) : [],
+        espanol: Array.isArray(prevStick.espanol) ? prevStick.espanol : [],
         updatedAt: data.updatedAt
       }));
       noteLocalWrite("emma-stickers-" + id);
