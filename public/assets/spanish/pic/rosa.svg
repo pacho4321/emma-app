@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-<ellipse cx="78" cy="150" rx="36" ry="28" fill="#ffd0e6" opacity="0.9"/>
-<rect x="96" y="48" width="78" height="140" rx="16" fill="#ff8ec6" stroke="#5c3d78" stroke-width="6" transform="rotate(18 135 118)"/>
-<polygon points="168,150 210,188 150,196" fill="#ff8ec6" stroke="#5c3d78" stroke-width="6" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect x="36" y="36" width="168" height="168" rx="40" fill="#ff8ec6" stroke="#5c3d78" stroke-width="10"/></svg>

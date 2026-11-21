@@ -100,9 +100,20 @@
     }
     takeStick(local);
     takeStick(remote);
+    var localSet = Number(local && local.setIndex) || 0;
+    var remoteSet = Number(remote && remote.setIndex) || 0;
+    var setIndex = Math.max(localSet, remoteSet);
+    var roundCount = localSet === remoteSet
+      ? Math.max(Number(local && local.round) || 0, Number(remote && remote.round) || 0)
+      : (localSet > remoteSet ? (Number(local && local.round) || 0) : (Number(remote && remote.round) || 0));
+    var newer = (Number(remote && remote.updatedAt) || 0) >= (Number(local && local.updatedAt) || 0) ? remote : local;
+    var voice = newer && typeof newer.voice === "string" ? newer.voice : "espeak";
     return {
       words: words,
       stickers: Object.keys(stickers).map(function (key) { return stickers[key]; }),
+      setIndex: setIndex,
+      round: roundCount,
+      voice: voice,
       updatedAt: Math.max(Number(local && local.updatedAt) || 0, Number(remote && remote.updatedAt) || 0)
     };
   }

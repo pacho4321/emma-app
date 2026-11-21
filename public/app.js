@@ -99,6 +99,8 @@
   var tool = "draw";
   var playUntil = 0;
   var playTick = 0;
+  var photoDone = null;
+  var photoEnding = false;
   var tmplCanvas = document.createElement("canvas");
   var tmplCache = {};
 
@@ -2998,13 +3000,28 @@ if (copy) {
     }
     if (left <= 0) {
       playUntil = 0;
-      beginStudy();
+      endCameraFun();
       return;
     }
     playTick = setTimeout(tickPlay, 250);
   }
 
-  function startCameraFun() {
+  function endCameraFun() {
+    if (photoEnding) return;
+    photoEnding = true;
+    clearTimeout(playTick);
+    playUntil = 0;
+    stopCamera();
+    var done = photoDone;
+    photoDone = null;
+    photoEnding = false;
+    if (done) done();
+    else beginStudy();
+  }
+
+  function startCameraFun(done) {
+    photoDone = typeof done === "function" ? done : null;
+    photoEnding = false;
     showOnly("play");
     document.body.dataset.mode = "play";
     EmmaSound.stopBgm();
@@ -3256,7 +3273,10 @@ soonEl.hidden = true;
     renderParent();
   }
 
-  playBack.addEventListener("click", showHome);
+  playBack.addEventListener("click", function () {
+    if (photoDone) endCameraFun();
+    else showHome();
+  });
   backBtn.addEventListener("click", function () {
     saveActive();
     showHome();
@@ -3843,7 +3863,8 @@ soonEl.hidden = true;
         if (profileId()) openAvatarPicker(profileId());
       },
       show: showOnly,
-      chime: function (kind) { if (window.EmmaSound) EmmaSound.chime(kind); }
+      chime: function (kind) { if (window.EmmaSound) EmmaSound.chime(kind); },
+      photo: function (done) { startCameraFun(done); }
     });
   }
 })();

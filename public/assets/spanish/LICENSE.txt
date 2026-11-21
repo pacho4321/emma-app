@@ -1,3 +1,9 @@
 Español 1 pictures and Ellen's portrait are original drawings made for this app.
-Spanish speech files were generated with eSpeak NG (GPL-3.0), voice es-419, then encoded to MP3.
-No third-party illustrations are included.
+Color cards are flat color shapes, not borrowed artwork.
+
+Spanish speech is bundled in three swappable sets so a voice can be chosen:
+- espeak: eSpeak NG (GPL-3.0), voice es-419
+- dalia: Microsoft Edge neural voice es-MX-DaliaNeural, generated for preview
+- elvira: Microsoft Edge neural voice es-ES-ElviraNeural, generated for preview
+Japanese encouragement lines use Microsoft Edge neural voice ja-JP-NanamiNeural.
+The neural files are samples for choosing a voice. They are not a Microsoft font or SDK.

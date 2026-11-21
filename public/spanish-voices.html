@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Español 1 voices</title>
+  <style>
+    body { margin: 0; font-family: "Trebuchet MS", "Hiragino Maru Gothic ProN", sans-serif; background: linear-gradient(180deg, #ffe7f8, #fff6d8); color: #5c3d78; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { color: #ff4f93; margin-bottom: 8px; }
+    p { line-height: 1.4; }
+    section { background: #fff; border-radius: 24px; padding: 16px; margin: 14px 0; box-shadow: 0 6px 0 rgba(255, 79, 147, 0.15); }
+    h2 { margin: 0 0 8px; font-size: 22px; }
+    button { border: none; border-radius: 999px; background: #ffe56a; color: #5c3d78; font-weight: 900; font-size: 16px; padding: 8px 12px; margin: 4px; }
+    button.use { background: #ff4f93; color: #fff; }
+    audio { width: 100%; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Español 1 voices</h1>
+    <p>Three Spanish voices for the same words. The game uses whichever one you choose. Japanese encouragement is Nanami for every option.</p>
+    <section>
+      <h2>1. eSpeak es-419</h2>
+      <p>The voice already in the game. Small files, fully offline, more robotic.</p>
+      <button type="button" class="use" data-voice="espeak">Use this voice</button>
+      <audio controls src="assets/spanish/voices/espeak/mesa.mp3"></audio>
+      <audio controls src="assets/spanish/voices/espeak/perro.mp3"></audio>
+      <audio controls src="assets/spanish/voices/espeak/naranja.mp3"></audio>
+      <audio controls src="assets/spanish/voices/espeak/mama.mp3"></audio>
+    </section>
+    <section>
+      <h2>2. Dalia (es-MX)</h2>
+      <p>A neural Latin American woman’s voice. Sample bundled so the whole word list can play offline.</p>
+      <button type="button" class="use" data-voice="dalia">Use this voice</button>
+      <audio controls src="assets/spanish/voices/dalia/mesa.mp3"></audio>
+      <audio controls src="assets/spanish/voices/dalia/perro.mp3"></audio>
+      <audio controls src="assets/spanish/voices/dalia/naranja.mp3"></audio>
+      <audio controls src="assets/spanish/voices/dalia/mama.mp3"></audio>
+    </section>
+    <section>
+      <h2>3. Elvira (es-ES)</h2>
+      <p>A neural voice from Spain. Also bundled for every word.</p>
+      <button type="button" class="use" data-voice="elvira">Use this voice</button>
+      <audio controls src="assets/spanish/voices/elvira/mesa.mp3"></audio>
+      <audio controls src="assets/spanish/voices/elvira/perro.mp3"></audio>
+      <audio controls src="assets/spanish/voices/elvira/naranja.mp3"></audio>
+      <audio controls src="assets/spanish/voices/elvira/mama.mp3"></audio>
+    </section>
+    <section>
+      <h2>Japanese encouragement</h2>
+      <p>Nanami, used with every Spanish option. Wrong answer, then the cheer.</p>
+      <audio controls src="assets/spanish/voices/ja/chigau.mp3"></audio>
+      <audio controls src="assets/spanish/voices/ja/sugoi.mp3"></audio>
+    </section>
+    <p id="picked"></p>
+  </main>
+  <script>
+    var note = document.getElementById("picked");
+    function show() {
+      var current = localStorage.getItem("emma-spanish-voice") || "espeak";
+      note.textContent = "Game voice now: " + current;
+    }
+    document.querySelectorAll(".use").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        localStorage.setItem("emma-spanish-voice", btn.getAttribute("data-voice"));
+        show();
+      });
+    });
+    show();
+  </script>
+</body>
+</html>
