@@ -65,6 +65,11 @@
   var live = false;
   var glitterTick = 0;
   var nextId = 1;
+  var undoStack = [];
+  var redoStack = [];
+  var pendingBefore = "";
+  var activePointers = {};
+  var inkLayer = document.createElement("canvas");
 
   function el(id) { return document.getElementById(id); }
 
@@ -368,33 +373,50 @@
     return -1;
   }
 
-  function drawInk(ctx, w, h) {
+  function drawInkLayer(w, h) {
+    if (inkLayer.width !== w || inkLayer.height !== h) {
+      inkLayer.width = w;
+      inkLayer.height = h;
+    }
+    var ctx = inkLayer.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.clearRect(0, 0, w, h);
     inkStrokes.forEach(function (s) {
       if (!s.pts.length) return;
       ctx.save();
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.lineWidth = Math.max(2, s.size * w);
+      var width = Math.max(8, s.size * w * (s.erase ? 1.7 : 1));
+      ctx.lineWidth = width;
       ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
       ctx.strokeStyle = s.erase ? "rgba(0,0,0,1)" : s.color;
-      ctx.beginPath();
-      s.pts.forEach(function (p, i) {
-        var x = p.x * w;
-        var y = p.y * h;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
+      ctx.fillStyle = ctx.strokeStyle;
+      if (s.pts.length === 1) {
+        ctx.beginPath();
+        ctx.arc(s.pts[0].x * w, s.pts[0].y * h, width / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        s.pts.forEach(function (p, i) {
+          var x = p.x * w;
+          var y = p.y * h;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
       if (s.glitter && !s.erase) {
         ctx.globalCompositeOperation = "source-over";
         ctx.fillStyle = "#fff7b0";
         s.pts.forEach(function (p, i) {
           if (i % 3) return;
-          star(ctx, p.x * w, p.y * h, Math.max(4, s.size * w * 0.7));
+          star(ctx, p.x * w, p.y * h, Math.max(6, s.size * w * 0.7));
         });
       }
       ctx.restore();
     });
+    return inkLayer;
   }
 
   function star(ctx, x, y, r) {
@@ -483,7 +505,7 @@
     ctx.drawImage(photo, (w - dw) / 2, (h - dh) / 2, dw, dh);
     ctx.filter = "none";
     ctx.restore();
-    drawInk(ctx, w, h);
+    ctx.drawImage(drawInkLayer(w, h), 0, 0);
     drawItems(ctx, w, h);
     drawDeco(ctx, w, h);
     drawGlitter(ctx, w, h, t || 0);
@@ -517,7 +539,21 @@
     snap.height = view.height;
     paint(snap.getContext("2d"), snap.width, snap.height, glitterTick);
     ctx.drawImage(snap, 0, 0);
+    drawSelection(ctx, view.width, view.height);
     placeHandles();
+  }
+
+  function drawSelection(ctx, w, h) {
+    if (selected < 0 || !items[selected] || live) return;
+    var it = items[selected];
+    ctx.save();
+    ctx.translate(it.x * w, it.y * h);
+    ctx.rotate(it.rot || 0);
+    ctx.strokeStyle = "#ff4f93";
+    ctx.lineWidth = Math.max(4, w * 0.008);
+    ctx.setLineDash([12, 8]);
+    ctx.strokeRect(-it.w * w / 2 - 6, -it.h * h / 2 - 6, it.w * w + 12, it.h * h + 12);
+    ctx.restore();
   }
 
   function loop() {
@@ -568,8 +604,100 @@
     });
   }
 
+  function snapshot() {
+    return JSON.stringify({
+      items: items,
+      ink: inkStrokes,
+      filterId: filterId,
+      frameId: frameId,
+      glitter: glitter,
+      deco: deco
+    });
+  }
+
+  function paintHistory() {
+    var undoBtn = el("puriUndoTop");
+    var redoBtn = el("puriRedoTop");
+    if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+    if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+  }
+
+  function applySnapshot(raw) {
+    var data = JSON.parse(raw);
+    items = data.items || [];
+    inkStrokes = data.ink || [];
+    filterId = data.filterId || "none";
+    frameId = data.frameId || "pink";
+    glitter = !!data.glitter;
+    deco = !!data.deco;
+    selected = items.length ? items.length - 1 : -1;
+    if (glitter) loop();
+    paintDots();
+    if (openTab === "kazari" || openTab === "pen") setTab(openTab, true);
+    redraw();
+    pushStickers();
+    paintHistory();
+  }
+
+  function beginChange() {
+    if (!pendingBefore) pendingBefore = snapshot();
+  }
+
+  function commitChange() {
+    if (!pendingBefore) return;
+    var now = snapshot();
+    if (now !== pendingBefore) {
+      undoStack.push(pendingBefore);
+      if (undoStack.length > 40) undoStack.shift();
+      redoStack = [];
+    }
+    pendingBefore = "";
+    paintHistory();
+  }
+
+  function editChange(mutator) {
+    var before = snapshot();
+    mutator();
+    var now = snapshot();
+    if (now !== before) {
+      undoStack.push(before);
+      if (undoStack.length > 40) undoStack.shift();
+      redoStack = [];
+    }
+    paintHistory();
+  }
+
+  function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(snapshot());
+    applySnapshot(undoStack.pop());
+    yay(0.5, 0.42);
+  }
+
+  function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(snapshot());
+    applySnapshot(redoStack.pop());
+    yay(0.62, 0.42);
+  }
+
+  function yay(nx, ny) {
+    var node = el("puriBurst");
+    if (node && stage) {
+      var rect = stage.getBoundingClientRect();
+      node.style.left = (rect.left + (nx == null ? 0.5 : nx) * rect.width) + "px";
+      node.style.top = (rect.top + (ny == null ? 0.42 : ny) * rect.height) + "px";
+      node.hidden = false;
+      node.classList.remove("go");
+      void node.offsetWidth;
+      node.classList.add("go");
+    }
+    if (window.EmmaSound && EmmaSound.pop) EmmaSound.pop();
+  }
+
   function stepFrame(dir) {
-    frameId = FRAMES[(frameIndex() + dir + FRAMES.length) % FRAMES.length];
+    var next = FRAMES[(frameIndex() + dir + FRAMES.length) % FRAMES.length];
+    editChange(function () { frameId = next; });
     paintDots();
     redraw();
     pushStickers();
@@ -604,9 +732,11 @@
     });
     selected = items.length - 1;
     mode = "move";
+    pen.erase = false;
     hideTray();
     redraw();
     pushStickers();
+    yay(items[selected].x, items[selected].y);
   }
 
   function addText(text, color) {
@@ -625,10 +755,13 @@
     });
     selected = items.length - 1;
     mode = "move";
+    pen.erase = false;
     hideTray();
     var form = el("puriTextForm");
     if (form) form.hidden = true;
     redraw();
+    pushStickers();
+    yay(0.5, 0.24);
   }
 
   function hideTray() {
@@ -671,19 +804,43 @@
     }).join(""));
   }
 
+  function pinchPair() {
+    var keys = Object.keys(activePointers);
+    if (keys.length < 2) return null;
+    return [activePointers[keys[0]], activePointers[keys[1]]];
+  }
+
   function onPointerDown(e) {
     if (!view) return;
     if (e.target.closest && e.target.closest("#puriHandles, .puri-top, #puriCam, #puriEdit")) return;
+    activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
     if (choosing || live) {
       swipe = { id: e.pointerId, x: e.clientX, y: e.clientY };
       try { stage.setPointerCapture(e.pointerId); } catch (err) {}
       return;
     }
+    var pair = pinchPair();
+    if (pair && selected >= 0 && items[selected]) {
+      var dist0 = Math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y) || 1;
+      var ang0 = Math.atan2(pair[1].y - pair[0].y, pair[1].x - pair[0].x);
+      beginChange();
+      drag = {
+        kind: "pinch",
+        dist: dist0,
+        ang: ang0,
+        w: items[selected].w,
+        rot: items[selected].rot || 0
+      };
+      return;
+    }
     var p = normPoint(e);
     if (p.x < -0.05 || p.y < -0.05 || p.x > 1.05 || p.y > 1.05) return;
-    var hit = hitItem(p);
-    if (hit >= 0 && mode !== "draw") {
+    var hit = mode === "draw" ? -1 : hitItem(p);
+    if (hit >= 0) {
       selected = hit;
+      mode = "move";
+      pen.erase = false;
+      beginChange();
       drag = { kind: "move", id: e.pointerId, x: p.x, y: p.y, ox: items[hit].x, oy: items[hit].y };
       try { view.setPointerCapture(e.pointerId); } catch (err) {}
       redraw();
@@ -691,6 +848,7 @@
     }
     if (mode === "draw") {
       selected = -1;
+      beginChange();
       inkStrokes.push({
         color: pen.color,
         size: pen.size,
@@ -701,13 +859,26 @@
       drag = { kind: "draw", id: e.pointerId };
       try { view.setPointerCapture(e.pointerId); } catch (err2) {}
       redraw();
-    } else {
-      selected = -1;
-      placeHandles();
+      return;
     }
+    selected = -1;
+    placeHandles();
   }
 
   function onPointerMove(e) {
+    if (activePointers[e.pointerId]) activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (drag && drag.kind === "pinch") {
+      var pair = pinchPair();
+      if (!pair || !items[selected]) return;
+      var dist = Math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y) || 1;
+      var ang = Math.atan2(pair[1].y - pair[0].y, pair[1].x - pair[0].x);
+      var it = items[selected];
+      it.w = Math.max(0.1, Math.min(0.92, drag.w * (dist / drag.dist)));
+      it.h = it.kind === "text" ? it.w * 0.28 : stickerNormH(it.w, it.aspect || 1);
+      it.rot = drag.rot + (ang - drag.ang);
+      redraw();
+      return;
+    }
     if (!drag || drag.id !== e.pointerId) return;
     var p = normPoint(e);
     if (drag.kind === "draw") {
@@ -717,37 +888,52 @@
       return;
     }
     if (drag.kind === "move" && items[selected]) {
-      items[selected].x = drag.ox + (p.x - drag.x);
-      items[selected].y = drag.oy + (p.y - drag.y);
+      items[selected].x = Math.max(0.05, Math.min(0.95, drag.ox + (p.x - drag.x)));
+      items[selected].y = Math.max(0.05, Math.min(0.95, drag.oy + (p.y - drag.y)));
       redraw();
     } else if (drag.kind === "scale" && items[selected]) {
-      var it = items[selected];
-      var dist = Math.hypot(p.x - it.x, (p.y - it.y) / viewRatio());
-      it.w = Math.max(0.08, Math.min(0.9, dist * 2));
-      it.h = it.kind === "text" ? it.w * 0.28 : stickerNormH(it.w, it.aspect || 1);
+      var scaled = items[selected];
+      var reach = Math.hypot(p.x - scaled.x, (p.y - scaled.y) / viewRatio());
+      scaled.w = Math.max(0.1, Math.min(0.92, reach * 2));
+      scaled.h = scaled.kind === "text" ? scaled.w * 0.28 : stickerNormH(scaled.w, scaled.aspect || 1);
       redraw();
     } else if (drag.kind === "rot" && items[selected]) {
-      var it2 = items[selected];
-      it2.rot = Math.atan2(p.y - it2.y, p.x - it2.x);
+      var spun = items[selected];
+      spun.rot = Math.atan2(p.y - spun.y, p.x - spun.x);
       redraw();
     }
   }
 
   function onPointerUp(e) {
+    delete activePointers[e.pointerId];
     if (swipe && swipe.id === e.pointerId) {
       var dx = e.clientX - swipe.x;
       var dy = e.clientY - swipe.y;
       swipe = null;
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) stepFrame(dx < 0 ? 1 : -1);
     }
-    if (drag && drag.id === e.pointerId) drag = null;
+    if (drag && drag.kind === "pinch") {
+      if (Object.keys(activePointers).length < 2) {
+        drag = null;
+        commitChange();
+        pushStickers();
+      }
+      return;
+    }
+    if (drag && drag.id === e.pointerId) {
+      var drew = drag.kind === "draw";
+      drag = null;
+      commitChange();
+      if (drew && inkStrokes.length) yay(0.5, 0.7);
+      else pushStickers();
+    }
   }
 
   var TABS = [
     ["seal", "シール", "sticker-sukiyo.webp"],
     ["moji", "もじ", "stamp-daisuki.webp"],
     ["pen", "ペン", ""],
-    ["kazari", "かざり", ""],
+    ["kazari", "かざり", "sticker-sakura.webp"],
     ["hozon", "ほぞん", ""],
     ["camera", "カメラ", ""]
   ];
@@ -802,16 +988,36 @@
       }).join("");
     } else if (name === "pen") {
       mode = "draw";
-      var sizes = [["0.008", "ほそい"], ["0.016", "ふつう"], ["0.03", "ふとい"]];
+      panel.className = "puri-panel pen-row";
+      var sizes = [["0.016", "ほそい"], ["0.034", "ふつう"], ["0.06", "ふとい"]];
       panel.innerHTML = sizes.map(function (s) {
-        return "<button type='button' data-size='" + s[0] + "'" + (pen.size === Number(s[0]) ? " class='picked'" : "") + ">" + s[1] + "</button>";
+        return "<button type='button' data-size='" + s[0] + "'" + (pen.size === Number(s[0]) && !pen.erase ? " class='picked'" : "") + ">" + s[1] + "</button>";
       }).join("") + COLORS.map(function (c) {
-        return "<button type='button' class='swatch" + (pen.color === c[1] ? " picked" : "") + "' data-color='" + c[1] + "' style='background:" + c[1] + "' aria-label='" + c[0] + "'></button>";
-      }).join("") + "<button type='button' id='puriEraser'>けす</button><button type='button' id='puriUndo'>もどす</button>";
+        return "<button type='button' class='swatch" + (pen.color === c[1] && !pen.erase ? " picked" : "") + "' data-color='" + c[1] + "' style='background:" + c[1] + "' aria-label='" + c[0] + "'></button>";
+      }).join("") + "<button type='button' id='puriEraser'" + (pen.erase ? " class='picked'" : "") + ">けしごむ</button><button type='button' id='puriGlitterPen'" + (pen.glitter ? " class='picked'" : "") + ">きらペン</button>";
     } else if (name === "kazari") {
-      panel.innerHTML = FILTERS.map(function (row) {
+      mode = "move";
+      pen.erase = false;
+      panel.className = "puri-panel kazari-row";
+      var seen = {};
+      var names = [];
+      function addName(src) {
+        if (!src || seen[src]) return;
+        seen[src] = true;
+        names.push(src);
+      }
+      ["sticker-sukiyo.webp", "sticker-yellowstar.webp", "sticker-bunny.webp", "sticker-sakura.webp", "sticker-winkstar.webp", "heart-22.webp", "stamp-daisuki.webp", "stamp-memory.webp", "chara-01.webp", "chara-03.webp"].forEach(addName);
+      Object.keys(CATS).forEach(function (cat) { CATS[cat].forEach(addName); });
+      STAMPS.forEach(addName);
+      panel.innerHTML = names.map(function (src) {
+        return "<button type='button' data-sticker='" + src + "'><img alt='' src='" + BASE + src + "'></button>";
+      }).join("") + TEXTS.map(function (row) {
+        return "<button type='button' class='puri-word' data-text=\"" + row[0].replace(/"/g, "") + "\" data-ink='" + row[1] + "'>" + row[0] + "</button>";
+      }).join("") + FILTERS.map(function (row) {
         return "<button type='button' data-filter='" + row[0] + "'" + (filterId === row[0] ? " class='picked'" : "") + ">" + row[1] + "</button>";
-      }).join("") + "<button type='button' id='puriSpark'" + (glitter ? " class='picked'" : "") + ">きらきら</button>";
+      }).join("") + "<button type='button' id='puriSpark'" + (glitter ? " class='picked'" : "") + ">きらきら</button><button type='button' id='puriDeco'" + (deco ? " class='picked'" : "") + ">すみハート</button>" + FRAMES.map(function (frame) {
+        return "<button type='button' data-frame='" + frame + "'" + (frame === frameId ? " class='picked'" : "") + "><img alt='' src='" + BASE + "frame-" + frame + ".webp'></button>";
+      }).join("");
     } else if (name === "hozon") {
       panel.className = "puri-panel save-row";
       panel.innerHTML = "<button type='button' class='puri-big' id='puriSaveNow'>ほぞん</button><button type='button' class='puri-big' id='puriAlbum'>アルバム</button><button type='button' class='puri-big' id='puriPrintNow'>プリント</button>";
@@ -855,10 +1061,13 @@
       var cat = e.target.closest("[data-cat]");
       var sticker = e.target.closest("[data-sticker]");
       var filter = e.target.closest("[data-filter]");
+      var frameBtn = e.target.closest("[data-frame]");
+      var word = e.target.closest("[data-text]");
       var color = e.target.closest("[data-color]");
       var size = e.target.closest("[data-size]");
       if (cat) {
         mode = "move";
+        pen.erase = false;
         var names = CATS[cat.getAttribute("data-cat")] || [];
         el("puriPanel").innerHTML = names.map(function (name) {
           return "<button type='button' data-sticker='" + name + "'><img alt='' src='" + BASE + name + "'></button>";
@@ -866,8 +1075,27 @@
         return;
       }
       if (e.target.closest("[data-back]")) { setTab("seal", true); return; }
-      if (sticker) { addSticker(sticker.getAttribute("data-sticker")); return; }
-      if (filter) { filterId = filter.getAttribute("data-filter"); setTab("kazari", true); redraw(); pushStickers(); return; }
+      if (sticker) { editChange(function () { addSticker(sticker.getAttribute("data-sticker")); }); return; }
+      if (word) { editChange(function () { addText(word.getAttribute("data-text"), word.getAttribute("data-ink")); }); return; }
+      if (frameBtn) {
+        var frameName = frameBtn.getAttribute("data-frame");
+        editChange(function () { frameId = frameName; });
+        paintDots();
+        redraw();
+        pushStickers();
+        setTab(openTab || "kazari", true);
+        yay(0.5, 0.2);
+        return;
+      }
+      if (filter) {
+        var nextFilter = filter.getAttribute("data-filter");
+        editChange(function () { filterId = nextFilter; });
+        redraw();
+        pushStickers();
+        setTab("kazari", true);
+        yay(0.5, 0.3);
+        return;
+      }
       if (color) {
         pen.color = color.getAttribute("data-color");
         pen.erase = false;
@@ -883,12 +1111,20 @@
         return;
       }
       if (e.target.closest("#puriEraser")) { pen.erase = !pen.erase; mode = "draw"; setTab("pen", true); return; }
-      if (e.target.closest("#puriUndo")) { inkStrokes.pop(); redraw(); return; }
+      if (e.target.closest("#puriGlitterPen")) { pen.glitter = !pen.glitter; pen.erase = false; mode = "draw"; setTab("pen", true); return; }
       if (e.target.closest("#puriSpark")) {
-        glitter = !glitter;
+        editChange(function () { glitter = !glitter; });
         if (glitter) loop();
         setTab("kazari", true);
         redraw();
+        yay(0.5, 0.25);
+        return;
+      }
+      if (e.target.closest("#puriDeco")) {
+        editChange(function () { deco = !deco; });
+        setTab("kazari", true);
+        redraw();
+        yay(0.5, 0.2);
         return;
       }
       if (e.target.closest("#puriSaveNow")) { var saveBtn = el("savePlay"); if (saveBtn) saveBtn.click(); return; }
@@ -901,18 +1137,24 @@
       e.stopPropagation();
       var kind = btn.getAttribute("data-h");
       if (kind === "del") {
-        items.splice(selected, 1);
-        selected = -1;
+        editChange(function () {
+          items.splice(selected, 1);
+          selected = -1;
+        });
         redraw();
+        pushStickers();
         return;
       }
       if (kind === "front") {
-        var it = items.splice(selected, 1)[0];
-        items.push(it);
-        selected = items.length - 1;
+        editChange(function () {
+          var it = items.splice(selected, 1)[0];
+          items.push(it);
+          selected = items.length - 1;
+        });
         redraw();
         return;
       }
+      beginChange();
       drag = { kind: kind === "rot" ? "rot" : "scale", id: e.pointerId };
       try { handles.setPointerCapture(e.pointerId); } catch (err) {}
     });
@@ -920,6 +1162,11 @@
     handles.addEventListener("pointerup", onPointerUp);
     var printBtn = el("puriPrint");
     if (printBtn) printBtn.addEventListener("click", printSheet);
+    var undoTop = el("puriUndoTop");
+    if (undoTop) undoTop.addEventListener("click", undo);
+    var redoTop = el("puriRedoTop");
+    if (redoTop) redoTop.addEventListener("click", redo);
+    paintHistory();
     var homeBtn = el("puriHome");
     if (homeBtn) homeBtn.addEventListener("click", function () {
       var back = el("playBack");
@@ -999,6 +1246,11 @@
     glitter = false;
     deco = false;
     openTab = "";
+    undoStack = [];
+    redoStack = [];
+    pendingBefore = "";
+    pen.erase = false;
+    paintHistory();
     var panel = el("puriPanel");
     if (panel) panel.hidden = true;
     var size = standSize();
