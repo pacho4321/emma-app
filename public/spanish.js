@@ -93,6 +93,8 @@ var EmmaSpanish = (function () {
   var ROUNDS = 10;
   var api = null;
   var player = new Audio();
+  var photos = {};
+  var photoLoad = null;
   var queue = [];
   var round = null;
   var busy = false;
@@ -164,6 +166,78 @@ var EmmaSpanish = (function () {
     return shuffle(picks.concat([word]));
   }
 
+  function plainSlug(text) {
+    return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function photoSlug(word) {
+    if (!word) return "";
+    if (word.id === "naranja-fruta" || word.id === "naranja-color") return word.id;
+    return plainSlug(word.label);
+  }
+
+  function audioKey(word) {
+    return plainSlug(word && (word.say || word.label));
+  }
+
+  function rememberPhoto(slug, file) {
+    slug = plainSlug(slug);
+    if (!slug || slug === "naranja") return;
+    var url = file;
+    if (!url || url === true) url = "espanol/photos/" + slug + ".jpg";
+    else if (typeof url !== "string") return;
+    else if (!/^https?:|^\/|espanol\//.test(url)) url = "espanol/photos/" + url.replace(/^.*\//, "");
+    photos[slug] = url;
+  }
+
+  function absorbPhotoMap(data) {
+    if (!data) return;
+    if (Array.isArray(data)) {
+      data.forEach(function (row) {
+        if (!row || typeof row !== "object") return;
+        rememberPhoto(row.slug || row.id || row.word, row.file || row.src || row.jpg || row.path);
+      });
+      return;
+    }
+    var table = data.photos || data.words || data.files || data;
+    if (Array.isArray(table)) {
+      absorbPhotoMap(table);
+      return;
+    }
+    if (!table || typeof table !== "object") return;
+    Object.keys(table).forEach(function (key) {
+      var value = table[key];
+      if (value && typeof value === "object") rememberPhoto(value.slug || key, value.file || value.src || value.path || value.jpg);
+      else rememberPhoto(key, value);
+    });
+  }
+
+  function loadPhotos() {
+    if (photoLoad) return photoLoad;
+    photoLoad = fetch("espanol/photos/mapping.json").then(function (res) {
+      if (!res.ok) return null;
+      return res.json();
+    }).then(function (data) {
+      absorbPhotoMap(data);
+    }).catch(function () {});
+    return photoLoad;
+  }
+
+  function wordBySticker(id) {
+    for (var i = 0; i < WORDS.length; i++) {
+      if (WORDS[i].id === id || WORDS[i].pic === id) return WORDS[i];
+    }
+    return null;
+  }
+
+  function pictureSrc(word) {
+    if (!word) return "";
+    if (word.solid) return "assets/spanish/pic/" + word.pic + ".svg";
+    var slug = photoSlug(word);
+    if (photos[slug]) return photos[slug];
+    return "assets/spanish/pic/" + word.pic + ".svg";
+  }
+
   function spanishFallback(text) {
     if (!window.speechSynthesis || !text) return;
     var voices = speechSynthesis.getVoices() || [];
@@ -206,7 +280,7 @@ var EmmaSpanish = (function () {
 
   function speakWord() {
     if (!round) return;
-    playSpanish(round.word.say, round.word.label);
+    playSpanish(audioKey(round.word), round.word.label);
   }
 
   function paintFace() {
@@ -253,7 +327,16 @@ var EmmaSpanish = (function () {
       btn.className = "pic-card" + (word.solid ? " is-solid" : "");
       btn.setAttribute("data-id", word.id);
       btn.setAttribute("data-label", word.label);
-      btn.innerHTML = "<img src='assets/spanish/pic/" + word.pic + ".svg' alt=''>";
+      var img = document.createElement("img");
+      img.alt = "";
+      img.src = pictureSrc(word);
+      if (!word.solid) {
+        img.addEventListener("error", function once() {
+          img.removeEventListener("error", once);
+          img.src = "assets/spanish/pic/" + word.pic + ".svg";
+        });
+      }
+      btn.appendChild(img);
       btn.addEventListener("click", function () { choose(word, btn); });
       grid.appendChild(btn);
     });
@@ -350,7 +433,7 @@ var EmmaSpanish = (function () {
     if (api.chime) api.chime("hanamaru");
     playJa("sugoi", function () {
       playSpanish("muy-bien", "¡Muy bien!", function () {
-        playSpanish(round.word.say, round.word.label);
+        playSpanish(audioKey(round.word), round.word.label);
       });
     });
     clearTimeout(advanceTimer);
@@ -373,7 +456,9 @@ var EmmaSpanish = (function () {
     if (!host) return;
     var rows = pack().stickers.slice().sort(function (a, b) { return (a.t || 0) - (b.t || 0); }).slice(-12);
     host.innerHTML = rows.map(function (row) {
-      return "<img src='assets/spanish/pic/" + row.id + ".svg' alt=''>";
+      var word = wordBySticker(row.id);
+      var src = word ? pictureSrc(word) : ("assets/spanish/pic/" + row.id + ".svg");
+      return "<img src='" + src + "' alt=''>";
     }).join("");
   }
 
@@ -389,12 +474,14 @@ var EmmaSpanish = (function () {
     if (!api) return;
     clearTimeout(advanceTimer);
     busy = false;
-    api.show("espanol");
-    paintFace();
-    if (!round && !queue.length) startQuestions();
-    else if (round) renderRound();
-    else next();
-    warm();
+    loadPhotos().then(function () {
+      api.show("espanol");
+      paintFace();
+      if (!round && !queue.length) startQuestions();
+      else if (round) renderRound();
+      else next();
+      warm();
+    });
   }
 
   function warm() {
@@ -402,8 +489,9 @@ var EmmaSpanish = (function () {
     var urls = ["spanish.js", "assets/avatars/ellen.svg", "assets/spanish/voices/ja/chigau.mp3", "assets/spanish/voices/ja/sugoi.mp3"];
     var voice = voiceId();
     WORDS.forEach(function (word) {
+      urls.push(pictureSrc(word));
       urls.push("assets/spanish/pic/" + word.pic + ".svg");
-      urls.push("assets/spanish/voices/" + voice + "/" + word.say + ".mp3");
+      urls.push("assets/spanish/voices/" + voice + "/" + audioKey(word) + ".mp3");
     });
     urls.push("assets/spanish/voices/" + voice + "/muy-bien.mp3");
     caches.open("emma-shell-20261121a").then(function (cache) {
@@ -438,6 +526,7 @@ var EmmaSpanish = (function () {
     if (gameFace) gameFace.addEventListener("click", function () { api.pickAvatar(); });
     if (photo) photo.addEventListener("click", goPhoto);
     if (window.speechSynthesis) speechSynthesis.getVoices();
+    loadPhotos();
   }
 
   return {
