@@ -163,7 +163,7 @@
       });
     });
     if (!seen[GATE_HASH.emma]) out.unshift({ id: GATE_HASH.emma, name: "エマ", builtin: "main" });
-    if (!seen[GATE_HASH.ellen]) out.push({ id: GATE_HASH.ellen, name: "エレン", builtin: "ellen", avatar: "ellen" });
+    if (!seen[GATE_HASH.ellen]) out.push({ id: GATE_HASH.ellen, name: "エレン", builtin: "ellen" });
     if (!seen[GATE_HASH.guest]) out.push({ id: GATE_HASH.guest, name: "ゲスト", builtin: "guest" });
     out.sort(function (a, b) {
       var rank = function (u) {
@@ -210,15 +210,25 @@
     ["unicorn", "ゆに", "assets/avatars/unicorn.webp"],
     ["chick", "ひよこ", "assets/avatars/chick.webp"],
     ["fox", "きつね", "assets/avatars/fox.webp"],
-    ["ellen", "エレン", "assets/avatars/ellen.svg"]
+    ["ellen", "エレン", "assets/avatars/ellen.svg"],
+    ["emma-photo", "エマ", "assets/avatars/emma-photo.webp"],
+    ["ellen-photo", "エレン", "assets/avatars/ellen-photo.webp"]
   ];
 
   function avatarIdOf(user) {
     var chosen = user && user.avatar;
-    for (var i = 0; i < AVATARS.length; i++) if (AVATARS[i][0] === chosen) return chosen;
-    if (user && user.builtin === "guest") return "cupcake";
-    if (user && user.builtin === "main") return "bunny";
-    if (user && user.builtin === "ellen") return "ellen";
+    var known = false;
+    for (var i = 0; i < AVATARS.length; i++) if (AVATARS[i][0] === chosen) known = true;
+    if (user && user.builtin === "guest") return known && chosen ? chosen : "cupcake";
+    if (user && user.builtin === "main") {
+      if (known && chosen) return chosen;
+      return "emma-photo";
+    }
+    if (user && user.builtin === "ellen") {
+      if (known && chosen && chosen !== "ellen") return chosen;
+      return "ellen-photo";
+    }
+    if (known && chosen) return chosen;
     var n = 0;
     var id = user && user.id || "";
     if (id.length >= 2) n = parseInt(id.slice(0, 2), 16) || 0;
