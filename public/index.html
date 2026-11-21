@@ -15,8 +15,13 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ff4f93'/%3E%3C/svg%3E">
 </head>
 <body>
-  <section id="profiles" class="profiles">
-    <h1 class="profiles-title">だれが べんきょうする？</h1>
+  <section id="startPick" class="start-pick">
+    <button type="button" id="pickStudy" class="start-app study">エマ勉強</button>
+    <button type="button" id="pickEspanol" class="start-app is-espanol">ESPAÑOL</button>
+  </section>
+  <section id="profiles" class="profiles" hidden>
+    <button type="button" id="profileBack" class="start-back" aria-label="もどる">←</button>
+    <h1 id="profileTitle" class="profiles-title">だれが べんきょうする？</h1>
     <div id="profileGrid" class="profile-grid"></div>
   </section>
   <section id="avatarPick" class="avatar-pick" hidden>
@@ -229,7 +234,7 @@
 
   <section id="ellenHome" class="ellen-home" hidden>
     <button type="button" id="ellenMenuFace" class="ellen-face" aria-label="かお"><img class="ellen-avatar-img" alt="" src="assets/avatars/ellen.svg"></button>
-    <p class="ellen-name">エレン</p>
+    <p id="ellenName" class="ellen-name">エレン</p>
     <div id="ellenRoundStars" class="round-stars"></div>
     <div id="ellenStickerTray" class="sticker-tray"></div>
     <button type="button" id="ellenPlay" class="espanol-launch">Español 1</button>

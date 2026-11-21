@@ -520,6 +520,8 @@ var EmmaSpanish = (function () {
   function openMenu() {
     if (!api) return;
     api.show("ellen");
+    var nameEl = document.getElementById("ellenName");
+    if (nameEl && api.profileName) nameEl.textContent = api.profileName();
     paintFace();
     paintStars(document.getElementById("ellenRoundStars"), pack().round || 0);
     paintStickers(document.getElementById("ellenStickerTray"));
@@ -549,7 +551,7 @@ var EmmaSpanish = (function () {
       urls.push("assets/spanish/voices/" + voice + "/" + audioKey(word) + ".mp3");
     });
     urls.push("assets/spanish/voices/" + voice + "/muy-bien.mp3");
-    caches.open("emma-shell-20261121a").then(function (cache) {
+    caches.open("emma-shell-20261121b").then(function (cache) {
       cache.addAll(urls).catch(function () {});
     }).catch(function () {});
   }

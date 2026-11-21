@@ -342,20 +342,21 @@
   }
 
   function loadProgress() {
-    var base = { sessions: 0, kanjiIndex: 0, kukuIndex: 0, worksheetIndex: 0, remember: [], mute: false, bgmPaused: true };
+    var base = {};
     try {
       var raw = storeGet(progressKey());
       if (!raw) raw = storeGet(legacyProgressKey(profileId())) || "";
-      var p = JSON.parse(raw || "{}");
-      base.sessions = Number(p.sessions) || 0;
-      base.kanjiIndex = Number(p.kanjiIndex) || 0;
-      base.kukuIndex = Number(p.kukuIndex) || 0;
-      base.worksheetIndex = Number(p.worksheetIndex) || 0;
-      base.mute = !!p.mute;
-      base.bgmPaused = !!p.bgmPaused;
-      if (Array.isArray(p.remember)) base.remember = p.remember.filter(known);
-      if (p.spanish && typeof p.spanish === "object") base.spanish = p.spanish;
+      var parsed = JSON.parse(raw || "{}");
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) base = parsed;
     } catch (e) {}
+    base.sessions = Number(base.sessions) || 0;
+    base.kanjiIndex = Number(base.kanjiIndex) || 0;
+    base.kukuIndex = Number(base.kukuIndex) || 0;
+    base.worksheetIndex = Number(base.worksheetIndex) || 0;
+    base.mute = !!base.mute;
+    base.bgmPaused = !!base.bgmPaused;
+    if (Array.isArray(base.remember)) base.remember = base.remember.filter(known);
+    else base.remember = [];
     base.kanjiIndex = ((base.kanjiIndex % KANJI.length) + KANJI.length) % KANJI.length;
     base.kukuIndex = ((base.kukuIndex % KUKU.length) + KUKU.length) % KUKU.length;
     if (window.WORKSHEET_ITEMS && WORKSHEET_ITEMS.length) {
@@ -642,7 +643,9 @@
 
   function showOnly(name) {
     var profiles = document.getElementById("profiles");
-    if (profiles) profiles.hidden = true;
+    var startPick = document.getElementById("startPick");
+    if (startPick) startPick.hidden = name !== "start";
+    if (profiles) profiles.hidden = name !== "profiles";
     var pick = document.getElementById("avatarPick");
     if (pick && name !== "home" && name !== "parent") pick.hidden = true;
     var veil = document.getElementById("loadVeil");
@@ -722,9 +725,44 @@
     var users = readUsers();
     grid.classList.toggle("few", users.length <= 3);
     grid.innerHTML = users.map(function (user) {
-      var game = user.builtin === "ellen" ? "<b class='profile-game'>Español 1</b>" : "";
-      return "<button type='button' class='profile-card' data-profile='" + user.id + "'><img alt='' src='" + avatarSrc(user) + "'><span>" + escapeHtml(user.name) + "</span>" + game + "</button>";
+      return "<button type='button' class='profile-card' data-profile='" + user.id + "'><img alt='' src='" + avatarSrc(user) + "'><span>" + escapeHtml(user.name) + "</span></button>";
     }).join("");
+  }
+
+  var chosenApp = "";
+
+  function showStart() {
+    cancelReward();
+    stopPlayTimer();
+    stopCamera();
+    if (window.EmmaSpanish) EmmaSpanish.stop();
+    EmmaSound.stopSong();
+    kanjiMusicOff();
+    chosenApp = "";
+    var start = document.getElementById("startPick");
+    if (start) start.hidden = false;
+    var profiles = document.getElementById("profiles");
+    if (profiles) profiles.hidden = true;
+    if (gateEl) gateEl.hidden = true;
+    var pick = document.getElementById("avatarPick");
+    if (pick) pick.hidden = true;
+    var veil = document.getElementById("loadVeil");
+    if (veil) veil.hidden = true;
+    home.hidden = true;
+    var shell = document.querySelector(".card");
+    if (shell) shell.hidden = true;
+    if (play) play.hidden = true;
+    if (study) study.hidden = true;
+    if (done) done.hidden = true;
+    var book = document.getElementById("book");
+    var parent = document.getElementById("parent");
+    if (book) book.hidden = true;
+    if (parent) parent.hidden = true;
+    var ellenHome = document.getElementById("ellenHome");
+    var espanol = document.getElementById("espanol");
+    if (ellenHome) ellenHome.hidden = true;
+    if (espanol) espanol.hidden = true;
+    document.body.dataset.screen = "start";
   }
 
   function showProfiles() {
@@ -732,8 +770,12 @@
     stopPlayTimer();
     stopCamera();
     EmmaSound.stopSong();
+    var start = document.getElementById("startPick");
+    if (start) start.hidden = true;
     var profiles = document.getElementById("profiles");
     if (profiles) profiles.hidden = false;
+    var title = document.getElementById("profileTitle");
+    if (title) title.textContent = chosenApp === "espanol" ? "ESPAÑOL" : "エマ勉強";
     if (gateEl) gateEl.hidden = true;
     var pick = document.getElementById("avatarPick");
     if (pick) pick.hidden = true;
@@ -3505,6 +3547,8 @@ soonEl.hidden = true;
     pendingProfile = id || "";
     var user = userById(pendingProfile);
     if (gateEl) gateEl.hidden = false;
+    var startPick = document.getElementById("startPick");
+    if (startPick) startPick.hidden = true;
     var profiles = document.getElementById("profiles");
     if (profiles) profiles.hidden = true;
     home.hidden = true;
@@ -3535,7 +3579,7 @@ soonEl.hidden = true;
       var wait = Math.max(0, 700 - (Date.now() - started));
       setTimeout(function () {
         hideLoading();
-        if (user && user.builtin === "ellen" && window.EmmaSpanish) {
+        if (chosenApp === "espanol" && window.EmmaSpanish) {
           showOnly("espanol");
           EmmaSpanish.openGame();
         } else {
@@ -3558,7 +3602,7 @@ soonEl.hidden = true;
     active = null;
     EmmaSound.stopSong();
     kanjiMusicOff();
-    showProfiles();
+    showStart();
   }
 
   function tryGate() {
@@ -3612,8 +3656,8 @@ soonEl.hidden = true;
   function chooseProfile(id) {
     var user = userById(id);
     if (!user) return;
-    if (user.builtin === "ellen") {
-      if (window.EmmaSpanish) EmmaSpanish.unlock();
+    if (chosenApp === "espanol" && window.EmmaSpanish) EmmaSpanish.unlock();
+    if (user.builtin === "guest" || user.builtin === "ellen") {
       enterApp(id);
       return;
     }
@@ -3663,6 +3707,17 @@ soonEl.hidden = true;
     if (!card) return;
     chooseProfile(card.getAttribute("data-profile"));
   });
+  var pickStudy = document.getElementById("pickStudy");
+  var pickEspanol = document.getElementById("pickEspanol");
+  function chooseApp(app) {
+    chosenApp = app;
+    EmmaSound.unlock().then(function () { EmmaSound.playOpening(); });
+    showProfiles();
+  }
+  if (pickStudy) pickStudy.addEventListener("click", function () { chooseApp("study"); });
+  if (pickEspanol) pickEspanol.addEventListener("click", function () { chooseApp("espanol"); });
+  var profileBack = document.getElementById("profileBack");
+  if (profileBack) profileBack.addEventListener("click", showStart);
   var gateBack = document.getElementById("gateBack");
   if (gateBack) gateBack.addEventListener("click", function () {
     pendingProfile = "";
@@ -3695,7 +3750,7 @@ soonEl.hidden = true;
   applySoundFlags();
   ensureUsers();
   if (profileId()) rememberProfile(profileId());
-  showProfiles();
+  showStart();
   function rehydrateFromStore() {
     progress = loadProgress();
     ensureUsers();
@@ -3858,6 +3913,10 @@ soonEl.hidden = true;
       avatar: function () {
         var me = userById(profileId());
         return me ? avatarSrc(me) : "assets/avatars/ellen.svg";
+      },
+      profileName: function () {
+        var me = userById(profileId());
+        return me ? me.name : "";
       },
       pickAvatar: function () {
         if (profileId()) openAvatarPicker(profileId());
