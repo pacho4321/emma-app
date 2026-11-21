@@ -1,0 +1,777 @@
+{
+  "abrigo": {
+    "word": "abrigo",
+    "category": "not in original list",
+    "drive_id": "1YxmfdX1K522LYuKArw6z9zqKw0eU5zfq",
+    "original_name": "abrigo.jpg"
+  },
+  "acondicionador": {
+    "word": "acondicionador",
+    "category": "not in original list",
+    "drive_id": "1OZ1VySpLQJYvL-Y5bcmsVjpj408YVWxR",
+    "original_name": "acondicionador.jpg"
+  },
+  "agua": {
+    "word": "agua",
+    "category": "food",
+    "drive_id": "1rhok7DV6X-Z2Phj_souTHS4fjKcJFW1F",
+    "original_name": "agua.jpg",
+    "notes": "Also covers the nature-category word agua."
+  },
+  "almohada": {
+    "word": "almohada",
+    "category": "not in original list",
+    "drive_id": "12_iwQJc6ZLpmk6F8uNYr6gyC55ufLEAP",
+    "original_name": "almohada.jpg"
+  },
+  "amarillo": {
+    "word": "amarillo",
+    "category": "colors",
+    "drive_id": "1GO3Vdvz7uQ1OUuGp1f2558am1PabgPFh",
+    "original_name": "amarillo.jpg"
+  },
+  "amiga": {
+    "word": "amiga",
+    "category": "not in original list",
+    "drive_id": "1gQ89fi78DSKqIZd-NpcNZRfCo21LEVg-",
+    "original_name": "amiga.jpg"
+  },
+  "amigo": {
+    "word": "amigo",
+    "category": "not in original list",
+    "drive_id": "1-sTs3aHb8nwXzJKrHz_nZgURnnbBclc0",
+    "original_name": "amigo.jpg"
+  },
+  "arroz": {
+    "word": "arroz",
+    "category": "food",
+    "drive_id": "1oHUVIZ_5ibYRJGNTQGQhVsmDvGI-uTaT",
+    "original_name": "arroz.jpg"
+  },
+  "azul": {
+    "word": "azul",
+    "category": "colors",
+    "drive_id": "1UFPiE9OQclQ9LH9h3rcEVmOjGFRP-Wj3",
+    "original_name": "azul.jpg"
+  },
+  "bebe": {
+    "word": "bebé",
+    "category": "family/people",
+    "drive_id": "1OHjOmydOPFx641Cjo-48WWoSA-e9jSAM",
+    "original_name": "bebe.jpg"
+  },
+  "boca": {
+    "word": "boca",
+    "category": "body parts",
+    "drive_id": "1KGD8bImOlpcv0yiMKScZCPV8cru-z1r-",
+    "original_name": "boca.jpg"
+  },
+  "caballo": {
+    "word": "caballo",
+    "category": "animals",
+    "drive_id": "1dDN_8FWZ6VXrJUs2GcSpaJsW11K_RMcU",
+    "original_name": "caballo.jpg"
+  },
+  "cabeza": {
+    "word": "cabeza",
+    "category": "body parts",
+    "drive_id": "1lX4jLvmyxfQWYg62K5EnWe-hGb4l27NI",
+    "original_name": "cabeza.jpg"
+  },
+  "cama": {
+    "word": "cama",
+    "category": "everyday objects",
+    "drive_id": "18fcDcVV2dZYvYwW8qnc7XhaYiNBgVfeE",
+    "original_name": "cama.jpg"
+  },
+  "camisa": {
+    "word": "camisa",
+    "category": "not in original list",
+    "drive_id": "1yvnnHr997C4-4MRheNqUt2p6wu91_WZB",
+    "original_name": "camisa.jpg"
+  },
+  "casa": {
+    "word": "casa",
+    "category": "everyday objects",
+    "drive_id": "1Sg2trB5CxTQZ5WDN4j-c5KudXXmliGCL",
+    "original_name": "casa.jpg"
+  },
+  "cepillo": {
+    "word": "cepillo",
+    "category": "not in original list",
+    "drive_id": "1lHZbZsFShI202sFbC99q6Cg078k5MaSL",
+    "original_name": "cepillo.jpg"
+  },
+  "cepillo_de_dientes": {
+    "word": "cepillo de dientes",
+    "category": "not in original list",
+    "drive_id": "15NXBOPiozs8WpqcfpYjN9XOQoHsJNzC6",
+    "original_name": "cepillo_de_dientes.jpg"
+  },
+  "cerdo": {
+    "word": "cerdo",
+    "category": "animals",
+    "drive_id": "18ssIxqqOvy-cvk10u6hJzEY6OussaG2U",
+    "original_name": "cerdo.jpg"
+  },
+  "coche": {
+    "word": "coche",
+    "category": "everyday objects",
+    "drive_id": "13k122amX-Xv8Fusx1Uk1Nmvs1muHOqSa",
+    "original_name": "coche.jpg"
+  },
+  "conejo": {
+    "word": "conejo",
+    "category": "animals",
+    "drive_id": "1ElYYn0qx-izbYWCp3_zAtBr4lP8G0LAY",
+    "original_name": "conejo.jpg"
+  },
+  "corazon": {
+    "word": "corazón",
+    "category": "not in original list",
+    "drive_id": "1lgs8_jRGTeZJdzjb6HoEHGsbVSBw9DtS",
+    "original_name": "corazon.jpg"
+  },
+  "crema_de_dientes": {
+    "word": "crema de dientes",
+    "category": "not in original list",
+    "drive_id": "18IItJQdqdJIz6Vf8zTCkocjYod8lNQzN",
+    "original_name": "crema_de_dientes.jpg"
+  },
+  "cuchara": {
+    "word": "cuchara",
+    "category": "not in original list",
+    "drive_id": "1F2lmnOBhXgIVdksjXz1a6COM80mT9FAy",
+    "original_name": "cuchara.jpg"
+  },
+  "ducha": {
+    "word": "ducha",
+    "category": "not in original list",
+    "drive_id": "1ZbpI9QgKC6dusa1BVBRvZ8O7vbFqL2eG",
+    "original_name": "ducha.jpg"
+  },
+  "elefante": {
+    "word": "elefante",
+    "category": "animals",
+    "drive_id": "1qy8b0uYViTevv86qkImWWqBZF2ryEbSx",
+    "original_name": "elefante.jpg"
+  },
+  "escaleras": {
+    "word": "escaleras",
+    "category": "not in original list",
+    "drive_id": "18wzrrdY0p5YmoWY50qFYq9rlAPFHAKUd",
+    "original_name": "escaleras.jpg"
+  },
+  "flor": {
+    "word": "flor",
+    "category": "everyday objects",
+    "drive_id": "1ln4TYbZXtf6neCqi9IVO-0RORymP31lD",
+    "original_name": "flor.jpg"
+  },
+  "fresa": {
+    "word": "fresa",
+    "category": "food",
+    "drive_id": "17kdTJt-aUSEkkINjENxBd7b4Qr8IJ6yP",
+    "original_name": "fresa.jpg"
+  },
+  "fuego": {
+    "word": "fuego",
+    "category": "nature",
+    "drive_id": "1VCivXdBbcaguuI0LDQmG94A6DKuPk0O3",
+    "original_name": "fuego.jpg"
+  },
+  "galleta": {
+    "word": "galleta",
+    "category": "food",
+    "drive_id": "1DRwhkwuaiR6z3l7HPoK7_CRcEjGXFnsA",
+    "original_name": "galleta.jpg"
+  },
+  "gallina": {
+    "word": "gallina",
+    "category": "animals",
+    "drive_id": "1kTJFQesjuSI_Myib4zX41C_f5korOeMi",
+    "original_name": "gallina.jpg"
+  },
+  "gato": {
+    "word": "gato",
+    "category": "animals",
+    "drive_id": "1xVjsz87m8bsEJEh0REgf9mYnQcz5qbya",
+    "original_name": "gato.jpg"
+  },
+  "gorro": {
+    "word": "gorro",
+    "category": "not in original list",
+    "drive_id": "1SQNz_jg8vvrAqNq9C2xMwseKA88I3qO1",
+    "original_name": "gorro.jpg"
+  },
+  "helado": {
+    "word": "helado",
+    "category": "food",
+    "drive_id": "156H5BjqoC25YIrykRq1rg1pwWPv3gtbX",
+    "original_name": "helado.jpg"
+  },
+  "huevo": {
+    "word": "huevo",
+    "category": "food",
+    "drive_id": "1yG76SFkV_2R7F6OX_qfwuEZthJZtBapu",
+    "original_name": "huevo.jpg"
+  },
+  "jugo": {
+    "word": "jugo",
+    "category": "food",
+    "drive_id": "14hOm-XGXSFTNAHewm5WpwK2ckP0mBrZK",
+    "original_name": "jugo.jpg"
+  },
+  "juguete": {
+    "word": "juguete",
+    "category": "not in original list",
+    "drive_id": "1wBHlUN2H2oUrMQipOs6Jh3G4GF19-qTJ",
+    "original_name": "juguete.jpg"
+  },
+  "leche": {
+    "word": "leche",
+    "category": "food",
+    "drive_id": "1vLTtL3vd1XZqPuuHNzsUSlpDuE6rjWrr",
+    "original_name": "leche.jpg"
+  },
+  "leon": {
+    "word": "león",
+    "category": "animals",
+    "drive_id": "1jRWxB80QyGCun6Di0C_xzj7LDuVIIkyC",
+    "original_name": "leon.jpg"
+  },
+  "libro": {
+    "word": "libro",
+    "category": "everyday objects",
+    "drive_id": "1aJeBRaczUTrDivhiUzRq1pfZwJohIaVD",
+    "original_name": "libro.jpg"
+  },
+  "lluvia": {
+    "word": "lluvia",
+    "category": "nature",
+    "drive_id": "18AvLWXlf0eEaEs761qyVIujDpgrht1lw",
+    "original_name": "lluvia.jpg"
+  },
+  "luna": {
+    "word": "luna",
+    "category": "everyday objects",
+    "drive_id": "1BkXXHUVpe-MiddC2mThsfHQHtwPG9yB6",
+    "original_name": "luna.jpg"
+  },
+  "mama": {
+    "word": "mamá",
+    "category": "family/people",
+    "drive_id": "1i0vau1M_SPstiIIxwTMxxF6IqwaWcGIu",
+    "original_name": "mama.jpg"
+  },
+  "manos": {
+    "word": "manos",
+    "category": "body parts",
+    "drive_id": "1ozF1nLxRggE5YQ8uP1Pj2Ebt_XMNVnF3",
+    "original_name": "manos.jpg"
+  },
+  "manzana": {
+    "word": "manzana",
+    "category": "food",
+    "drive_id": "1qXxDd0Tt7-QwCHKelqS7pW75wCvJhgnI",
+    "original_name": "manzana.jpg"
+  },
+  "mar": {
+    "word": "mar",
+    "category": "nature",
+    "drive_id": "1QLPA_QU_OJqI88W27_CLjgDFwZ9iv02M",
+    "original_name": "mar.jpg"
+  },
+  "mesa": {
+    "word": "mesa",
+    "category": "everyday objects",
+    "drive_id": "1I7WOg6YivvPY9sNmh6NVEZcpIWgeXL9B",
+    "original_name": "mesa.jpg"
+  },
+  "mono": {
+    "word": "mono",
+    "category": "animals",
+    "drive_id": "18ckPvnO66KD6lc-jIuZ1OMLpMMYzJlsF",
+    "original_name": "mono.jpg"
+  },
+  "montana": {
+    "word": "montaña",
+    "category": "nature",
+    "drive_id": "1RB5mTKgvX_yldvNyFQVwBQQ1o9VihuZQ",
+    "original_name": "montana.jpg"
+  },
+  "naranja": {
+    "word": "naranja",
+    "category": "food",
+    "drive_id": "1KYl_vo45RvD8kU0v_-Fs8yv6b8aB0Toz",
+    "original_name": "naranja.jpg",
+    "notes": "Photo is the fruit (orange with a leaf and a face), not a solid color card. Filename kept as naranja. The color naranja still has no photo."
+  },
+  "nariz": {
+    "word": "nariz",
+    "category": "body parts",
+    "drive_id": "1E0GcDXZCa0PIIHoGy_oH4bwYHs3bYKqU",
+    "original_name": "nariz.jpg"
+  },
+  "nina": {
+    "word": "niña",
+    "category": "family/people",
+    "drive_id": "1ZUQf9yNZj-JTXxR5Qqechg1d54hqeaf6",
+    "original_name": "nina.jpg"
+  },
+  "nino": {
+    "word": "niño",
+    "category": "family/people",
+    "drive_id": "1rje9VddiA1iQsJPhJX6QBMOk5midhQ8U",
+    "original_name": "nino.jpg"
+  },
+  "nube": {
+    "word": "nube",
+    "category": "nature",
+    "drive_id": "1pkuA2xYzzyXsVyC3a8HvGHQ5Q9nInIN4",
+    "original_name": "nube.jpg"
+  },
+  "ojos": {
+    "word": "ojos",
+    "category": "body parts",
+    "drive_id": "1Jzar2gAupYcpZVk7ELTHJR2GmxF3pwrj",
+    "original_name": "ojos.jpg"
+  },
+  "oso": {
+    "word": "oso",
+    "category": "animals",
+    "drive_id": "1qxcT6RiLJJ-z01rXledYa4QiQMreIXtc",
+    "original_name": "oso.jpg"
+  },
+  "pajaro": {
+    "word": "pájaro",
+    "category": "animals",
+    "drive_id": "1XbMMUEdiFkmoCRRkbNBEUm48eQMajgYU",
+    "original_name": "pajaro.jpg"
+  },
+  "pan": {
+    "word": "pan",
+    "category": "food",
+    "drive_id": "12fuoD0nLB6oYNUjiMdeBtD7fiid3OADB",
+    "original_name": "pan.jpg"
+  },
+  "pantalon": {
+    "word": "pantalón",
+    "category": "not in original list",
+    "drive_id": "1u8XlCrfDsBDG3QKqIPXZ1U7flemkMMWj",
+    "original_name": "pantalon.jpg"
+  },
+  "papa": {
+    "word": "papá",
+    "category": "family/people",
+    "drive_id": "1U9IURsh8HMv7g_Pe6VHSr7Ca98eiRgqN",
+    "original_name": "papa.jpg"
+  },
+  "pato": {
+    "word": "pato",
+    "category": "animals",
+    "drive_id": "142qYSOAnBnf3kE4YTCsr8r7ppkGkL6Mw",
+    "original_name": "pato.jpg"
+  },
+  "pelota": {
+    "word": "pelota",
+    "category": "everyday objects",
+    "drive_id": "1sgVLVuAJrDVdOjxSETeEMfC3VSaUtdrC",
+    "original_name": "pelota.jpg"
+  },
+  "perro": {
+    "word": "perro",
+    "category": "animals",
+    "drive_id": "15ptgDGSS4KVnc45RzDGWqf9k4W1ZxBNG",
+    "original_name": "perro.jpg"
+  },
+  "pez": {
+    "word": "pez",
+    "category": "animals",
+    "drive_id": "18BhpA67bKYqO-mgAX3rfehpaNt6Vu67T",
+    "original_name": "pez.jpg"
+  },
+  "pies": {
+    "word": "pies",
+    "category": "body parts",
+    "drive_id": "1UuamZOWLwh0iibm79MmANgNorMqhbIyX",
+    "original_name": "pies.jpg"
+  },
+  "pitillo": {
+    "word": "pitillo",
+    "category": "not in original list",
+    "drive_id": "11nfC3LQZeEAujP2eyc3RasYkYjzBla2I",
+    "original_name": "pitillo.jpg"
+  },
+  "platano": {
+    "word": "plátano",
+    "category": "food",
+    "drive_id": "1AYS1M4zmlWLaxHhil0WX9bJcyKspTvSj",
+    "original_name": "platano.jpg"
+  },
+  "plato": {
+    "word": "plato",
+    "category": "not in original list",
+    "drive_id": "1LV62QCEofUlb-_Eae0eExl8Hbx6rTThH",
+    "original_name": "plato.jpg"
+  },
+  "pudin": {
+    "word": "pudín",
+    "category": "not in original list",
+    "drive_id": "1rY_hIr3yNWxXHgisGA6Oy4vztEhSDNVz",
+    "original_name": "pudin.jpg"
+  },
+  "puerta": {
+    "word": "puerta",
+    "category": "everyday objects",
+    "drive_id": "1Uh4327lmdXZMx43zORhQb_-dqU5ggG0J",
+    "original_name": "puerta.jpg"
+  },
+  "queso": {
+    "word": "queso",
+    "category": "food",
+    "drive_id": "1CJTTJ1tXHc-y0mTfEu_1GLYIvA5ggy85",
+    "original_name": "queso.jpg"
+  },
+  "rojo": {
+    "word": "rojo",
+    "category": "colors",
+    "drive_id": "1lDVj-5J4byLPUPbWJYOk8ZWlrDJgim1f",
+    "original_name": "rojo.jpg"
+  },
+  "ropa_interior": {
+    "word": "ropa interior",
+    "category": "not in original list",
+    "drive_id": "1KVW8P2xlBSZhZ0AvFRSzBYnfAkxbHvJk",
+    "original_name": "ropa_interior.jpg"
+  },
+  "saco": {
+    "word": "saco",
+    "category": "not in original list",
+    "drive_id": "1R1c-4f8U-3urXzfe0HzwhKszCpdLCKt1",
+    "original_name": "saco.jpg"
+  },
+  "shampoo": {
+    "word": "shampoo",
+    "category": "not in original list",
+    "drive_id": "17lHTDDJncKpAwZvs0nOHjGPX2fDGT0zO",
+    "original_name": "shampoo.jpg"
+  },
+  "silla": {
+    "word": "silla",
+    "category": "everyday objects",
+    "drive_id": "1nZXD_icQ0U7cZsp7Ed_9I3vyoZZWw2gN",
+    "original_name": "silla.jpg"
+  },
+  "sol": {
+    "word": "sol",
+    "category": "everyday objects",
+    "drive_id": "10qd28T2W5wXY1lAZR0cfEw4Uqh7Of6D-",
+    "original_name": "sol.jpg"
+  },
+  "tenedor": {
+    "word": "tenedor",
+    "category": "not in original list",
+    "drive_id": "1078RnNomYDVnT6aUusmyZgYnQBuXFDD-",
+    "original_name": "tenedor.jpg"
+  },
+  "tina": {
+    "word": "tina",
+    "category": "not in original list",
+    "drive_id": "1vR7mR5AhgT5ly2gfVfyj9SAWFS_8lvOR",
+    "original_name": "tina.jpg"
+  },
+  "tomate": {
+    "word": "tomate",
+    "category": "food",
+    "drive_id": "18JxA9QgG5KTm3rhr76-9GJhHlADg6yGL",
+    "original_name": "tomate.jpg"
+  },
+  "tortuga": {
+    "word": "tortuga",
+    "category": "animals",
+    "drive_id": "1Zj13c2lvseKeWz1YveJe_D_-yXpocJZA",
+    "original_name": "tortuga.jpg"
+  },
+  "vaca": {
+    "word": "vaca",
+    "category": "animals",
+    "drive_id": "11ty-Fhtha7MG-uQw79AOgmAWdzWRllBc",
+    "original_name": "vaca.jpg"
+  },
+  "vaso": {
+    "word": "vaso",
+    "category": "not in original list",
+    "drive_id": "14CKgvMOkg9OlwL2AFfmdNraAcvPrjDpG",
+    "original_name": "vaso.jpg"
+  },
+  "verde": {
+    "word": "verde",
+    "category": "colors",
+    "drive_id": "11oHelxX45m0fgzHPbXzihwfL5UaxJ39D",
+    "original_name": "verde.jpg"
+  },
+  "zanahoria": {
+    "word": "zanahoria",
+    "category": "food",
+    "drive_id": "1NVq3YPL2Pn1yzXie9CQjmBiHZaFFZM1_",
+    "original_name": "zanahoria.jpg"
+  },
+  "zapato": {
+    "word": "zapato",
+    "category": "everyday objects",
+    "drive_id": "19T_vmHDhTHn2pwanXo43ar-XT5Ris4eK",
+    "original_name": "zapato.jpg",
+    "notes": "Filename is singular zapato; the original list has zapatos (plural). Same item, used to cover zapatos."
+  },
+  "_missing": [
+    {
+      "slug": "blanco",
+      "word": "blanco",
+      "category": "colors"
+    },
+    {
+      "slug": "negro",
+      "word": "negro",
+      "category": "colors"
+    },
+    {
+      "slug": "rosa",
+      "word": "rosa",
+      "category": "colors"
+    },
+    {
+      "slug": "morado",
+      "word": "morado",
+      "category": "colors"
+    },
+    {
+      "slug": "naranja-color",
+      "word": "naranja",
+      "category": "colors"
+    },
+    {
+      "slug": "cafe",
+      "word": "café",
+      "category": "colors"
+    },
+    {
+      "slug": "orejas",
+      "word": "orejas",
+      "category": "body parts"
+    },
+    {
+      "slug": "pelo",
+      "word": "pelo",
+      "category": "body parts"
+    },
+    {
+      "slug": "estrella",
+      "word": "estrella",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "arbol",
+      "word": "árbol",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "ventana",
+      "word": "ventana",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "telefono",
+      "word": "teléfono",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "reloj",
+      "word": "reloj",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "lapiz",
+      "word": "lápiz",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "tijeras",
+      "word": "tijeras",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "sombrero",
+      "word": "sombrero",
+      "category": "everyday objects"
+    },
+    {
+      "slug": "abuela",
+      "word": "abuela",
+      "category": "family/people"
+    },
+    {
+      "slug": "abuelo",
+      "word": "abuelo",
+      "category": "family/people"
+    }
+  ],
+  "_not_in_original_list": [
+    {
+      "slug": "abrigo",
+      "word": "abrigo",
+      "original_name": "abrigo.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "acondicionador",
+      "word": "acondicionador",
+      "original_name": "acondicionador.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "almohada",
+      "word": "almohada",
+      "original_name": "almohada.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "amiga",
+      "word": "amiga",
+      "original_name": "amiga.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "amigo",
+      "word": "amigo",
+      "original_name": "amigo.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "camisa",
+      "word": "camisa",
+      "original_name": "camisa.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "cepillo",
+      "word": "cepillo",
+      "original_name": "cepillo.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "cepillo_de_dientes",
+      "word": "cepillo de dientes",
+      "original_name": "cepillo_de_dientes.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "corazon",
+      "word": "corazón",
+      "original_name": "corazon.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "crema_de_dientes",
+      "word": "crema de dientes",
+      "original_name": "crema_de_dientes.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "cuchara",
+      "word": "cuchara",
+      "original_name": "cuchara.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "ducha",
+      "word": "ducha",
+      "original_name": "ducha.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "escaleras",
+      "word": "escaleras",
+      "original_name": "escaleras.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "gorro",
+      "word": "gorro",
+      "original_name": "gorro.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "juguete",
+      "word": "juguete",
+      "original_name": "juguete.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "pantalon",
+      "word": "pantalón",
+      "original_name": "pantalon.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "pitillo",
+      "word": "pitillo",
+      "original_name": "pitillo.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "plato",
+      "word": "plato",
+      "original_name": "plato.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "pudin",
+      "word": "pudín",
+      "original_name": "pudin.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "ropa_interior",
+      "word": "ropa interior",
+      "original_name": "ropa_interior.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "saco",
+      "word": "saco",
+      "original_name": "saco.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "shampoo",
+      "word": "shampoo",
+      "original_name": "shampoo.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "tenedor",
+      "word": "tenedor",
+      "original_name": "tenedor.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "tina",
+      "word": "tina",
+      "original_name": "tina.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "vaso",
+      "word": "vaso",
+      "original_name": "vaso.jpg",
+      "note": "Filename is not in Frank's original vocabulary list."
+    },
+    {
+      "slug": "zapato",
+      "word": "zapato",
+      "original_name": "zapato.jpg",
+      "note": "Filename is singular zapato; the original list has zapatos (plural). Same item, used to cover zapatos."
+    }
+  ]
+}

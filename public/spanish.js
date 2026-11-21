@@ -86,7 +86,32 @@ var EmmaSpanish = (function () {
     { id: "nube", say: "nube", label: "nube", cat: "naturaleza", pic: "nube" },
     { id: "lluvia", say: "lluvia", label: "lluvia", cat: "naturaleza", pic: "lluvia" },
     { id: "montana", say: "montaña", label: "montaña", cat: "naturaleza", pic: "montana" },
-    { id: "mar", say: "mar", label: "mar", cat: "naturaleza", pic: "mar" }
+    { id: "mar", say: "mar", label: "mar", cat: "naturaleza", pic: "mar" },
+    { id: "abrigo", say: "abrigo", label: "abrigo", cat: "ropa", pic: "abrigo", slug: "abrigo" },
+    { id: "acondicionador", say: "acondicionador", label: "acondicionador", cat: "aseo", pic: "acondicionador", slug: "acondicionador" },
+    { id: "almohada", say: "almohada", label: "almohada", cat: "casa", pic: "almohada", slug: "almohada" },
+    { id: "amiga", say: "amiga", label: "amiga", cat: "familia", pic: "amiga", slug: "amiga" },
+    { id: "amigo", say: "amigo", label: "amigo", cat: "familia", pic: "amigo", slug: "amigo" },
+    { id: "camisa", say: "camisa", label: "camisa", cat: "ropa", pic: "camisa", slug: "camisa" },
+    { id: "cepillo", say: "cepillo", label: "cepillo", cat: "aseo", pic: "cepillo", slug: "cepillo" },
+    { id: "cepillo_de_dientes", say: "cepillo de dientes", label: "cepillo de dientes", cat: "aseo", pic: "cepillo_de_dientes", slug: "cepillo_de_dientes" },
+    { id: "corazon", say: "corazón", label: "corazón", cat: "cuerpo", pic: "corazon", slug: "corazon" },
+    { id: "crema_de_dientes", say: "crema de dientes", label: "crema de dientes", cat: "aseo", pic: "crema_de_dientes", slug: "crema_de_dientes" },
+    { id: "cuchara", say: "cuchara", label: "cuchara", cat: "cocina", pic: "cuchara", slug: "cuchara" },
+    { id: "ducha", say: "ducha", label: "ducha", cat: "aseo", pic: "ducha", slug: "ducha" },
+    { id: "escaleras", say: "escaleras", label: "escaleras", cat: "casa", pic: "escaleras", slug: "escaleras" },
+    { id: "gorro", say: "gorro", label: "gorro", cat: "ropa", pic: "gorro", slug: "gorro" },
+    { id: "juguete", say: "juguete", label: "juguete", cat: "objetos", pic: "juguete", slug: "juguete" },
+    { id: "pantalon", say: "pantalón", label: "pantalón", cat: "ropa", pic: "pantalon", slug: "pantalon" },
+    { id: "pitillo", say: "pitillo", label: "pitillo", cat: "cocina", pic: "pitillo", slug: "pitillo" },
+    { id: "plato", say: "plato", label: "plato", cat: "cocina", pic: "plato", slug: "plato" },
+    { id: "pudin", say: "pudín", label: "pudín", cat: "comida", pic: "pudin", slug: "pudin" },
+    { id: "ropa_interior", say: "ropa interior", label: "ropa interior", cat: "ropa", pic: "ropa_interior", slug: "ropa_interior" },
+    { id: "saco", say: "saco", label: "saco", cat: "ropa", pic: "saco", slug: "saco" },
+    { id: "shampoo", say: "champú", label: "shampoo", speak: "champú", audio: "shampoo", cat: "aseo", pic: "shampoo", slug: "shampoo" },
+    { id: "tenedor", say: "tenedor", label: "tenedor", cat: "cocina", pic: "tenedor", slug: "tenedor" },
+    { id: "tina", say: "tina", label: "tina", cat: "aseo", pic: "tina", slug: "tina" },
+    { id: "vaso", say: "vaso", label: "vaso", cat: "cocina", pic: "vaso", slug: "vaso" }
   ];
   var VOICES = { espeak: true, dalia: true, elvira: true };
   var DEFAULT_VOICE = "elvira";
@@ -115,8 +140,19 @@ var EmmaSpanish = (function () {
     return list;
   }
 
+  function lessonSets() {
+    var cut = WORDS.length;
+    for (var i = 0; i < WORDS.length; i++) {
+      if (WORDS[i].id === "abrigo") { cut = i; break; }
+    }
+    var sets = [];
+    for (var a = 0; a < cut; a += SET_SIZE) sets.push(WORDS.slice(a, Math.min(cut, a + SET_SIZE)));
+    for (var b = cut; b < WORDS.length; b += SET_SIZE) sets.push(WORDS.slice(b, b + SET_SIZE));
+    return sets;
+  }
+
   function setCount() {
-    return Math.ceil(WORDS.length / SET_SIZE);
+    return lessonSets().length;
   }
 
   function pack() {
@@ -140,8 +176,10 @@ var EmmaSpanish = (function () {
   }
 
   function currentSet() {
-    var start = (pack().setIndex || 0) * SET_SIZE;
-    return WORDS.slice(start, start + SET_SIZE);
+    var sets = lessonSets();
+    var idx = pack().setIndex || 0;
+    if (idx >= sets.length) idx = 0;
+    return sets[idx].slice();
   }
 
   function ensure(id) {
@@ -173,22 +211,33 @@ var EmmaSpanish = (function () {
 
   function photoSlug(word) {
     if (!word) return "";
-    if (word.id === "naranja-fruta" || word.id === "naranja-color") return word.id;
-    return plainSlug(word.label);
+    if (word.slug) return word.slug;
+    if (word.id === "naranja-fruta") return "naranja";
+    if (word.id === "zapatos") return "zapato";
+    return plainSlug(word.label).replace(/ /g, "_");
   }
 
   function audioKey(word) {
-    return plainSlug(word && (word.say || word.label));
+    if (!word) return "";
+    if (word.audio) return word.audio;
+    return plainSlug(word.say || word.label).replace(/ /g, "_");
+  }
+
+  function spoken(word) {
+    return (word && (word.speak || word.label)) || "";
   }
 
   function rememberPhoto(slug, file) {
-    slug = plainSlug(slug);
-    if (!slug || slug === "naranja") return;
-    var url = file;
-    if (!url || url === true) url = "espanol/photos/" + slug + ".jpg";
-    else if (typeof url !== "string") return;
-    else if (!/^https?:|^\/|espanol\//.test(url)) url = "espanol/photos/" + url.replace(/^.*\//, "");
-    photos[slug] = url;
+    if (!slug || String(slug).charAt(0) === "_") return;
+    if (file && typeof file === "object" && !file.original_name && !file.file && !file.src && !file.jpg && !file.path) return;
+    var key = (slug === "naranja-fruta" || slug === "naranja-color") ? slug : plainSlug(slug).replace(/ /g, "_");
+    if (!key) return;
+    var name = "";
+    if (typeof file === "string") name = file;
+    else if (file && typeof file === "object") name = file.original_name || file.file || file.src || file.jpg || file.path || "";
+    if (!name) name = key + ".jpg";
+    var url = (/^https?:|^\/|^espanol\//.test(name)) ? name : ("espanol/photos/" + String(name).replace(/^.*\//, ""));
+    photos[key] = url;
   }
 
   function absorbPhotoMap(data) {
@@ -207,15 +256,20 @@ var EmmaSpanish = (function () {
     }
     if (!table || typeof table !== "object") return;
     Object.keys(table).forEach(function (key) {
+      if (key.charAt(0) === "_") return;
       var value = table[key];
-      if (value && typeof value === "object") rememberPhoto(value.slug || key, value.file || value.src || value.path || value.jpg);
+      if (Array.isArray(value)) {
+        absorbPhotoMap(value);
+        return;
+      }
+      if (value && typeof value === "object") rememberPhoto(value.slug || key, value);
       else rememberPhoto(key, value);
     });
   }
 
   function loadPhotos() {
     if (photoLoad) return photoLoad;
-    photoLoad = fetch("espanol/photos/mapping.json").then(function (res) {
+    photoLoad = fetch("espanol/mapping.json").then(function (res) {
       if (!res.ok) return null;
       return res.json();
     }).then(function (data) {
@@ -281,7 +335,7 @@ var EmmaSpanish = (function () {
 
   function speakWord() {
     if (!round) return;
-    playSpanish(audioKey(round.word), round.word.label);
+    playSpanish(audioKey(round.word), spoken(round.word));
   }
 
   function paintFace() {
@@ -434,7 +488,7 @@ var EmmaSpanish = (function () {
     if (api.chime) api.chime("hanamaru");
     playJa("sugoi", function () {
       playSpanish("muy-bien", "¡Muy bien!", function () {
-        playSpanish(audioKey(round.word), round.word.label);
+        playSpanish(audioKey(round.word), spoken(round.word));
       });
     });
     clearTimeout(advanceTimer);
