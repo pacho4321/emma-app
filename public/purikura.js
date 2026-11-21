@@ -813,7 +813,8 @@
         return "<button type='button' data-filter='" + row[0] + "'" + (filterId === row[0] ? " class='picked'" : "") + ">" + row[1] + "</button>";
       }).join("") + "<button type='button' id='puriSpark'" + (glitter ? " class='picked'" : "") + ">きらきら</button>";
     } else if (name === "hozon") {
-      panel.innerHTML = "<button type='button' class='puri-big' id='puriSaveNow'>ほぞん</button><button type='button' class='puri-big' id='puriPrintNow'>プリント</button>";
+      panel.className = "puri-panel save-row";
+      panel.innerHTML = "<button type='button' class='puri-big' id='puriSaveNow'>ほぞん</button><button type='button' class='puri-big' id='puriAlbum'>アルバム</button><button type='button' class='puri-big' id='puriPrintNow'>プリント</button>";
     }
   }
 
@@ -891,6 +892,7 @@
         return;
       }
       if (e.target.closest("#puriSaveNow")) { var saveBtn = el("savePlay"); if (saveBtn) saveBtn.click(); return; }
+      if (e.target.closest("#puriAlbum")) { if (window.EmmaAlbum) EmmaAlbum.open(); return; }
       if (e.target.closest("#puriPrintNow")) { printSheet(); }
     });
     handles.addEventListener("pointerdown", function (e) {
@@ -940,9 +942,13 @@
 
   function save() {
     var out = compositeCanvas();
+    if (window.EmmaAlbum) {
+      EmmaAlbum.saveCanvas(out);
+      return;
+    }
     var a = document.createElement("a");
-    a.href = out.toDataURL("image/jpeg", 0.95);
-    a.download = "emma-purikura.jpg";
+    a.href = out.toDataURL("image/jpeg", 0.92);
+    a.download = "emma-photo.jpg";
     a.click();
   }
 

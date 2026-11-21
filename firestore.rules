@@ -30,6 +30,30 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /albums/{profileId}/photos/{photoId} {
+      allow read: if signedIn() && profileIdOk(profileId);
+      allow create: if signedIn()
+        && profileIdOk(profileId)
+        && profileId != "66b49fe4f7018673a75d9a7c39911a0458695d23bff9e96b6298eb7704d6bf1d"
+        && photoId.matches('^[A-Za-z0-9]{8,40}$')
+        && request.resource.data.keys().hasOnly(['profileId', 'createdAt', 'width', 'height', 'jpeg'])
+        && request.resource.data.profileId == profileId
+        && request.resource.data.createdAt is number
+        && request.resource.data.width is number
+        && request.resource.data.width > 0
+        && request.resource.data.width <= 1280
+        && request.resource.data.height is number
+        && request.resource.data.height > 0
+        && request.resource.data.height <= 1280
+        && request.resource.data.jpeg is bytes
+        && request.resource.data.jpeg.size() > 32
+        && request.resource.data.jpeg.size() <= 700000;
+      allow update: if false;
+      allow delete: if signedIn()
+        && profileIdOk(profileId)
+        && profileId != "66b49fe4f7018673a75d9a7c39911a0458695d23bff9e96b6298eb7704d6bf1d";
+    }
+
     match /registry/names {
       allow read: if signedIn();
       allow create, update: if signedIn()

@@ -706,6 +706,7 @@
     var espanol = document.getElementById("espanol");
     if (ellenHome) ellenHome.hidden = name !== "ellen";
     if (espanol) espanol.hidden = name !== "espanol";
+    if (window.EmmaAlbum) EmmaAlbum.close();
     document.body.dataset.screen = name;
     if (name === "home") fitHome();
   }
@@ -803,6 +804,7 @@
     var espanol = document.getElementById("espanol");
     if (ellenHome) ellenHome.hidden = true;
     if (espanol) espanol.hidden = true;
+    if (window.EmmaAlbum) EmmaAlbum.close();
     document.body.dataset.screen = "start";
   }
 
@@ -836,6 +838,7 @@
     var espanol = document.getElementById("espanol");
     if (ellenHome) ellenHome.hidden = true;
     if (espanol) espanol.hidden = true;
+    if (window.EmmaAlbum) EmmaAlbum.close();
     document.body.dataset.screen = "profiles";
     renderProfiles();
   }
@@ -3127,9 +3130,13 @@ soonEl.hidden = true;
     if (!video.hidden && video.videoWidth) drawCover(ctx, video, out.width, out.height);
     else ctx.drawImage(photoCanvas, 0, 0);
     ctx.drawImage(playInk, 0, 0);
+    if (window.EmmaAlbum) {
+      EmmaAlbum.saveCanvas(out);
+      return;
+    }
     var a = document.createElement("a");
-    a.href = out.toDataURL("image/png");
-    a.download = "emma-e.png";
+    a.href = out.toDataURL("image/jpeg", 0.82);
+    a.download = "emma-photo.jpg";
     a.click();
   }
 
@@ -3477,6 +3484,14 @@ soonEl.hidden = true;
   });
   if (clearPlay && playInk) clearPlay.addEventListener("click", function () { clearInk(playInk); });
   if (savePlay) savePlay.addEventListener("click", savePicture);
+  var homeAlbum = document.getElementById("homeAlbum");
+  if (homeAlbum) homeAlbum.addEventListener("click", function () {
+    if (window.EmmaAlbum) EmmaAlbum.open();
+  });
+  var ellenAlbum = document.getElementById("ellenAlbum");
+  if (ellenAlbum) ellenAlbum.addEventListener("click", function () {
+    if (window.EmmaAlbum) EmmaAlbum.open();
+  });
   if (fileInput) fileInput.addEventListener("change", function () {
     var picked = fileInput.files && fileInput.files[0];
     if (picked && window.EmmaPuri) {
@@ -3808,6 +3823,7 @@ soonEl.hidden = true;
 
   if (window.EmmaCloud) {
     EmmaCloud.setProfile(profileId);
+    if (window.EmmaAlbum) EmmaAlbum.setProfile(profileId);
     EmmaCloud.setName(function (id) {
       var user = userById(id);
       return user ? user.name : "";

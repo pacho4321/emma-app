@@ -551,7 +551,7 @@ var EmmaSpanish = (function () {
       urls.push("assets/spanish/voices/" + voice + "/" + audioKey(word) + ".mp3");
     });
     urls.push("assets/spanish/voices/" + voice + "/muy-bien.mp3");
-    caches.open("emma-shell-20261121d").then(function (cache) {
+    caches.open("emma-shell-20261121e").then(function (cache) {
       cache.addAll(urls).catch(function () {});
     }).catch(function () {});
   }

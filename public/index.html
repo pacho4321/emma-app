@@ -78,6 +78,7 @@
       </button>
       <button type="button" id="startSansu" class="sansu-home">算数練習</button>
       <button type="button" id="startBook" class="book-home">れんしゅうちょう</button>
+      <button type="button" id="homeAlbum" class="home-album">アルバム</button>
     </div>
   </section>
 
@@ -238,6 +239,7 @@
     <div id="ellenRoundStars" class="round-stars"></div>
     <div id="ellenStickerTray" class="sticker-tray"></div>
     <button type="button" id="ellenPlay" class="espanol-launch">Español 1</button>
+    <button type="button" id="ellenAlbum" class="ellen-album">アルバム</button>
     <button type="button" id="ellenLeave" class="ellen-leave" aria-label="でる">でる</button>
   </section>
   <section id="espanol" class="espanol" hidden>
@@ -266,12 +268,33 @@
     </div>
   </section>
 
+  <section id="album" class="album" hidden>
+    <header class="album-bar">
+      <button type="button" id="albumBack" class="album-back" aria-label="もどる">←</button>
+      <h1>アルバム</h1>
+    </header>
+    <p id="albumNote" class="album-note">この きかいと クラウドの アルバム</p>
+    <p id="albumEmpty" class="album-empty">まだ しゃしんが ないよ</p>
+    <div id="albumGrid" class="album-grid"></div>
+    <div id="albumAsk" class="album-ask" hidden>
+      <div class="album-ask-card">
+        <p class="album-ask-title">おやの かくにん</p>
+        <p>この しゃしんを けす？</p>
+        <div class="album-ask-row">
+          <button type="button" id="albumCancel" class="btn blue">やめる</button>
+          <button type="button" id="albumYes" class="btn pink">けす</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <script src="store.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="cloud.js"></script>
+  <script src="album.js"></script>
   <script src="curriculum.js"></script>
   <script src="strokes.js"></script>
   <script src="sound.js"></script>

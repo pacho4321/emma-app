@@ -1,4 +1,4 @@
-var CACHE = "emma-shell-20261121d";
+var CACHE = "emma-shell-20261121e";
 var CORE = [
   "/",
   "/index.html",
@@ -7,6 +7,7 @@ var CORE = [
   "/store.js",
   "/firebase-config.js",
   "/cloud.js",
+  "/album.js",
   "/manifest.webmanifest",
   "/assets/icon-180.png",
   "/assets/icon-192.png",

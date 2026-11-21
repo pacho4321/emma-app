@@ -20,15 +20,20 @@
     try {
       for (var i = 0; i < localStorage.length; i++) {
         var key = localStorage.key(i);
-        if (emmaKey(key)) mem[key] = localStorage.getItem(key);
+        if (emmaKey(key) && !albumKey(key)) mem[key] = localStorage.getItem(key);
       }
     } catch (e) {}
   }
 
+  function albumKey(key) {
+    return key.indexOf("emma-album-") === 0;
+  }
+
   function mirror(key, value) {
     try {
-      if (value == null) localStorage.removeItem(key);
-      else localStorage.setItem(key, value);
+      if (albumKey(key) || value == null) localStorage.removeItem(key);
+      if (albumKey(key) || value == null) return;
+      localStorage.setItem(key, value);
     } catch (e) {}
   }
 

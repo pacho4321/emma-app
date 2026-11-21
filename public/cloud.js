@@ -572,10 +572,70 @@
     if (configured) setStatus("offline", "クラウド: オフライン");
   });
 
+  function photoBytes(value) {
+    if (!value) return null;
+    if (value.toUint8Array) return value.toUint8Array();
+    return null;
+  }
+
+  function albumCol(id) {
+    return db.collection("albums").doc(id).collection("photos");
+  }
+
+  function putPhoto(id, photo) {
+    if (!configured || !db || !photo || isGuest(id) || !/^[0-9a-f]{64}$/.test(id)) return Promise.resolve(false);
+    if (!photo.id || !/^[A-Za-z0-9]{8,40}$/.test(photo.id)) return Promise.resolve(false);
+    return ensureAuth().then(function (ok) {
+      if (!ok) return false;
+      return albumCol(id).doc(photo.id).set({
+        profileId: id,
+        createdAt: Number(photo.createdAt) || Date.now(),
+        width: Number(photo.width) || 0,
+        height: Number(photo.height) || 0,
+        jpeg: firebase.firestore.Blob.fromUint8Array(photo.bytes)
+      }).then(function () { return true; });
+    }).catch(function () { return false; });
+  }
+
+  function listPhotos(id) {
+    if (!configured || !db || isGuest(id) || !/^[0-9a-f]{64}$/.test(id)) return Promise.resolve([]);
+    return ensureAuth().then(function (ok) {
+      if (!ok) return [];
+      return albumCol(id).orderBy("createdAt", "desc").limit(60).get().then(function (snap) {
+        var rows = [];
+        snap.forEach(function (doc) {
+          var data = doc.data() || {};
+          var bytes = photoBytes(data.jpeg);
+          if (!bytes) return;
+          rows.push({
+            id: doc.id,
+            createdAt: Number(data.createdAt) || 0,
+            width: Number(data.width) || 0,
+            height: Number(data.height) || 0,
+            bytes: bytes
+          });
+        });
+        return rows;
+      });
+    }).catch(function () { return []; });
+  }
+
+  function deletePhoto(id, photoId) {
+    if (!configured || !db || isGuest(id) || !/^[0-9a-f]{64}$/.test(id)) return Promise.resolve(false);
+    if (!photoId || !/^[A-Za-z0-9]{8,40}$/.test(photoId)) return Promise.resolve(false);
+    return ensureAuth().then(function (ok) {
+      if (!ok) return false;
+      return albumCol(id).doc(photoId).delete().then(function () { return true; });
+    }).catch(function () { return false; });
+  }
+
   window.EmmaCloud = {
     setProfile: function (fn) { profileFn = fn || profileFn; },
     setName: function (fn) { nameFn = fn || nameFn; },
     start: start,
+    putPhoto: putPhoto,
+    listPhotos: listPhotos,
+    deletePhoto: deletePhoto,
     pullAndMerge: pullAndMerge,
     syncProfile: syncProfile,
     noteLocalWrite: noteLocalWrite,
