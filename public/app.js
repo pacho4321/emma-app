@@ -129,11 +129,24 @@
     try { return localStorage.getItem(key); } catch (e) { return null; }
   }
 
-  function storeSet(key, value) {
+  function writeStore(key, value) {
     if (window.EmmaStore) EmmaStore.set(key, value);
     else {
       try { localStorage.setItem(key, value); } catch (e) {}
     }
+  }
+
+  function storeSet(key, value) {
+    var text = String(value);
+    if (/^emma-(progress|book|stickers)-[0-9a-f]{64}$/.test(key)) {
+      var prev = storeGet(key);
+      if (prev && prev !== text) {
+        var older = storeGet("emma-bak1-" + key);
+        if (older && older !== prev) writeStore("emma-bak2-" + key, older);
+        writeStore("emma-bak1-" + key, prev);
+      }
+    }
+    writeStore(key, text);
     if (window.EmmaCloud && EmmaCloud.noteLocalWrite) EmmaCloud.noteLocalWrite(key);
   }
 
@@ -298,6 +311,24 @@
     if (id === GATE_HASH.emma) return "emma-progress-v1";
     if (id === GATE_HASH.guest) return "emma-progress-guest-v1";
     return "";
+  }
+
+  function savedRicher(current, extra) {
+    if (!extra) return current || "";
+    if (!current) return extra;
+    if (!window.EmmaCloud || !EmmaCloud.mergeProgress) return current;
+    try { return EmmaCloud.mergeProgress(current, JSON.parse(extra)); } catch (e) { return current; }
+  }
+
+  function migrateFamilySaves() {
+    [GATE_HASH.emma, GATE_HASH.ellen].forEach(function (id) {
+      var key = "emma-progress-" + id;
+      var best = "";
+      [storeGet(key), storeGet("emma-bak1-" + key), storeGet("emma-bak2-" + key), storeGet(legacyProgressKey(id))].forEach(function (text) {
+        best = savedRicher(best, text);
+      });
+      if (best && best !== storeGet(key)) storeSet(key, best);
+    });
   }
 
   function legacyActiveKey(id) {
@@ -3785,6 +3816,7 @@ soonEl.hidden = true;
   }
   if (window.EmmaStore) {
     EmmaStore.whenReady(function (changed) {
+      migrateFamilySaves();
       if (changed) rehydrateFromStore();
       if (window.EmmaCloud) EmmaCloud.start().then(rehydrateFromStore);
       else refreshCloud();
