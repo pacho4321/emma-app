@@ -107,7 +107,7 @@
       ? Math.max(Number(local && local.round) || 0, Number(remote && remote.round) || 0)
       : (localSet > remoteSet ? (Number(local && local.round) || 0) : (Number(remote && remote.round) || 0));
     var newer = (Number(remote && remote.updatedAt) || 0) >= (Number(local && local.updatedAt) || 0) ? remote : local;
-    var voice = newer && typeof newer.voice === "string" ? newer.voice : "espeak";
+    var voice = newer && typeof newer.voice === "string" ? newer.voice : "elvira";
     return {
       words: words,
       stickers: Object.keys(stickers).map(function (key) { return stickers[key]; }),

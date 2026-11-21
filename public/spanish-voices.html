@@ -19,7 +19,7 @@
 <body>
   <main>
     <h1>Español 1 voices</h1>
-    <p>Three Spanish voices for the same words. The game uses whichever one you choose. Japanese encouragement is Nanami for every option.</p>
+    <p>Three Spanish voices for the same words. The game starts on Elvira (es-ES). Japanese encouragement stays Nanami for every option.</p>
     <section>
       <h2>1. eSpeak es-419</h2>
       <p>The voice already in the game. Small files, fully offline, more robotic.</p>
@@ -39,8 +39,8 @@
       <audio controls src="assets/spanish/voices/dalia/mama.mp3"></audio>
     </section>
     <section>
-      <h2>3. Elvira (es-ES)</h2>
-      <p>A neural voice from Spain. Also bundled for every word.</p>
+      <h2>3. Elvira (es-ES) — default</h2>
+      <p>A neural voice from Spain, bundled for every word. This is the voice Español 1 plays unless another option is chosen here.</p>
       <button type="button" class="use" data-voice="elvira">Use this voice</button>
       <audio controls src="assets/spanish/voices/elvira/mesa.mp3"></audio>
       <audio controls src="assets/spanish/voices/elvira/perro.mp3"></audio>
@@ -58,7 +58,7 @@
   <script>
     var note = document.getElementById("picked");
     function show() {
-      var current = localStorage.getItem("emma-spanish-voice") || "espeak";
+      var current = localStorage.getItem("emma-spanish-voice") || "elvira";
       note.textContent = "Game voice now: " + current;
     }
     document.querySelectorAll(".use").forEach(function (btn) {

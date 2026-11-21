@@ -89,6 +89,7 @@ var EmmaSpanish = (function () {
     { id: "mar", say: "mar", label: "mar", cat: "naturaleza", pic: "mar" }
   ];
   var VOICES = { espeak: true, dalia: true, elvira: true };
+  var DEFAULT_VOICE = "elvira";
   var SET_SIZE = 15;
   var ROUNDS = 10;
   var api = null;
@@ -127,7 +128,7 @@ var EmmaSpanish = (function () {
     box.setIndex = Math.max(0, Number(box.setIndex) || 0);
     box.round = Math.max(0, Number(box.round) || 0);
     if (box.setIndex >= setCount()) box.setIndex = 0;
-    if (!VOICES[box.voice]) box.voice = "espeak";
+    if (!VOICES[box.voice]) box.voice = DEFAULT_VOICE;
     return box;
   }
 
@@ -135,7 +136,7 @@ var EmmaSpanish = (function () {
     var chosen = "";
     try { chosen = localStorage.getItem("emma-spanish-voice") || ""; } catch (e) {}
     if (VOICES[chosen]) return chosen;
-    return pack().voice || "espeak";
+    return pack().voice || DEFAULT_VOICE;
   }
 
   function currentSet() {
@@ -533,7 +534,7 @@ var EmmaSpanish = (function () {
     boot: boot,
     unlock: function () {
       player.volume = 0;
-      player.src = "assets/spanish/voices/espeak/mesa.mp3";
+      player.src = "assets/spanish/voices/" + DEFAULT_VOICE + "/mesa.mp3";
       var pending = player.play();
       if (pending && pending.then) {
         pending.then(function () {
